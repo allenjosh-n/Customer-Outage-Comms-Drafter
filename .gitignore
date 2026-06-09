@@ -1,0 +1,25 @@
+# Virtual Environment
+venv/
+env/
+.env
+
+# API Keys / Secrets
+config.py
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
