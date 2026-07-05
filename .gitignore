@@ -1,25 +1,26 @@
-# Virtual Environment
-venv/
-env/
+# ── Secrets ──────────────────────────────────────────────
 .env
 
-# API Keys / Secrets
-config.py
-
-# Python cache
+# ── Python ────────────────────────────────────────────────
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# VS Code
-.vscode/
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Distribution / packaging
+*.pdb
+*.egg-info/
 dist/
 build/
-*.egg-info/
+
+# ── Virtual environment ───────────────────────────────────
+venv/
+env/
+.venv/
+
+# ── Editor ────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+
+# ── OS ────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
