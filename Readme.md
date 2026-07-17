@@ -2,6 +2,15 @@
 
 > An AI-powered incident communication tool that converts raw technical timelines into professional, customer-safe messages — automatically detecting the incident phase and drafting the right update every time.
 
+## Live Deployments
+
+| Platform | URL | Status |
+|---|---|---|
+| Render | https://customer-outage-comms-drafter.onrender.com | ✅ Live |
+| Vercel | https://customer-outage-comms-drafter.vercel.app | ✅ Live |
+
+> **Primary:** Use the Render link for best performance. Vercel serves as a backup.
+
 ---
 
 ## Problem Statement
@@ -223,7 +232,6 @@ Full prompt documentation in [`docs/AI_USAGE.md`](docs/AI_USAGE.md).
 - Multi-language support
 - Incident analytics dashboard
 - Webhook integration for PagerDuty / Slack
-- Cloud deployment (Railway / Render)
 
 ---
 
