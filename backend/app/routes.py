@@ -44,12 +44,14 @@ def detect_phase():
     try:
         client = get_client()
         response = client.chat.completions.create(
-            model="openai/gpt-oss-120b",
+            model="openai/gpt-oss-20b",
             messages=[{"role": "user", "content": phase_detection_prompt(timeline)}],
-            max_tokens=5,
+            max_tokens=100,
             temperature=0,
         )
         phase = response.choices[0].message.content.strip().lower()
+        # strip any punctuation the model may add
+        phase = phase.strip('"\'. \n')
         if phase not in VALID_PHASES:
             phase = "initial"
         return jsonify({"phase": phase})
@@ -78,11 +80,12 @@ def generate():
     try:
         client = get_client()
         response = client.chat.completions.create(
-            model="openai/gpt-oss-120b",
+            model="openai/gpt-oss-20b",
             messages=[{
                 "role": "user",
                 "content": communication_prompt(timeline, severity, tone, phase),
             }],
+            max_tokens=1024,
         )
 
         result = response.choices[0].message.content
