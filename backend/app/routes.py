@@ -44,7 +44,7 @@ def detect_phase():
     try:
         client = get_client()
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             messages=[{"role": "user", "content": phase_detection_prompt(timeline)}],
             max_tokens=5,
             temperature=0,
@@ -78,7 +78,7 @@ def generate():
     try:
         client = get_client()
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             messages=[{
                 "role": "user",
                 "content": communication_prompt(timeline, severity, tone, phase),
