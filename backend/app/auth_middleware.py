@@ -2,32 +2,28 @@
 JWT middleware — provides @jwt_required decorator.
 """
 import os
+import datetime
 import jwt
 from functools import wraps
 from flask import request, jsonify
 
-# Import from config so .env is loaded first on local dev
-try:
-    from backend.config import JWT_SECRET
-except ImportError:
-    from config import JWT_SECRET
 
-
-SECRET_KEY = JWT_SECRET
+def _secret() -> str:
+    """Read JWT_SECRET lazily so it works on both local (.env) and Vercel (env var)."""
+    return os.environ.get("JWT_SECRET", "change-me-in-production")
 
 
 def create_token(user_id: int, username: str) -> str:
-    import datetime
     payload = {
         "sub":      user_id,
         "username": username,
         "exp":      datetime.datetime.utcnow() + datetime.timedelta(hours=12),
     }
-    return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+    return jwt.encode(payload, _secret(), algorithm="HS256")
 
 
 def decode_token(token: str) -> dict:
-    return jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    return jwt.decode(token, _secret(), algorithms=["HS256"])
 
 
 def jwt_required(f):
@@ -44,7 +40,6 @@ def jwt_required(f):
             return jsonify({"error": "Token expired — please log in again"}), 401
         except jwt.InvalidTokenError:
             return jsonify({"error": "Invalid token"}), 401
-        # Attach decoded payload to request context
         request.current_user = payload
         return f(*args, **kwargs)
     return decorated
