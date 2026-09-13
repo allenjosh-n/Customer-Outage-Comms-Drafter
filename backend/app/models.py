@@ -6,11 +6,12 @@ import sqlite3
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# /tmp is writable on Vercel serverless; local dev uses backend/ folder
-DB_PATH = os.environ.get(
-    "DB_PATH",
-    os.path.join(os.path.dirname(__file__), "..", "users.db")
+# /tmp is the only writable directory on Vercel serverless
+# Fall back to /tmp/users.db unless DB_PATH is explicitly set
+_default_db = "/tmp/users.db" if os.path.exists("/tmp") else os.path.join(
+    os.path.dirname(__file__), "..", "users.db"
 )
+DB_PATH = os.environ.get("DB_PATH", _default_db)
 
 
 def _get_conn():
