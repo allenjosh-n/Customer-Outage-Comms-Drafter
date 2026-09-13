@@ -6,7 +6,14 @@ import jwt
 from functools import wraps
 from flask import request, jsonify
 
-SECRET_KEY = os.environ.get("JWT_SECRET", "change-me-in-production")
+# Import from config so .env is loaded first on local dev
+try:
+    from backend.config import JWT_SECRET
+except ImportError:
+    from config import JWT_SECRET
+
+
+SECRET_KEY = JWT_SECRET
 
 
 def create_token(user_id: int, username: str) -> str:

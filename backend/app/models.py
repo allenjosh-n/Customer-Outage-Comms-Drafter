@@ -6,7 +6,10 @@ import sqlite3
 import os
 import bcrypt
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "..", "users.db")
+DB_PATH = os.environ.get(
+    "DB_PATH",
+    os.path.join(os.path.dirname(__file__), "..", "users.db")
+)
 
 
 def _get_conn():
