@@ -4,12 +4,14 @@ Database file is created automatically next to this package.
 """
 import sqlite3
 import os
-import bcrypt
+from passlib.context import CryptContext
 
 DB_PATH = os.environ.get(
     "DB_PATH",
     os.path.join(os.path.dirname(__file__), "..", "users.db")
 )
+
+_pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def _get_conn():
@@ -35,7 +37,7 @@ def init_db():
 
 def create_user(username: str, email: str, password: str) -> dict | None:
     """Hash password and insert user. Returns the new user or None on duplicate."""
-    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    hashed = _pwd_ctx.hash(password)
     try:
         with _get_conn() as conn:
             cursor = conn.execute(
@@ -63,4 +65,4 @@ def get_user_by_email(email: str) -> sqlite3.Row | None:
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return bcrypt.checkpw(plain.encode(), hashed.encode())
+    return _pwd_ctx.verify(plain, hashed)
