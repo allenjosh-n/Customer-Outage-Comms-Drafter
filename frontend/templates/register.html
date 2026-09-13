@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OutageComms — Create Account</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body class="auth-page">
+
+  <div class="auth-container">
+    <div class="auth-card">
+
+      <!-- Brand -->
+      <div class="auth-brand">
+        <div class="brand-pulse pulse--low"></div>
+        <span class="brand-name">OutageComms</span>
+      </div>
+
+      <h1 class="auth-title">Create account</h1>
+      <p class="auth-subtitle">Join your incident response team</p>
+
+      <div id="authError" class="auth-error" style="display:none"></div>
+
+      <form id="registerForm" class="auth-form" onsubmit="handleRegister(event)">
+
+        <div class="field-group">
+          <label class="field-label" for="username">Username</label>
+          <input
+            type="text" id="username" name="username"
+            class="auth-input" placeholder="min. 3 characters"
+            autocomplete="username" required minlength="3"
+          >
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="email">Email</label>
+          <input
+            type="email" id="email" name="email"
+            class="auth-input" placeholder="you@company.com"
+            autocomplete="email" required
+          >
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="password">Password</label>
+          <input
+            type="password" id="password" name="password"
+            class="auth-input" placeholder="min. 6 characters"
+            autocomplete="new-password" required minlength="6"
+          >
+        </div>
+
+        <button type="submit" class="generate-btn auth-submit" id="submitBtn">
+          <span class="btn-label">Create Account</span>
+          <span class="btn-loader" id="btnLoader"></span>
+        </button>
+
+      </form>
+
+      <p class="auth-switch">
+        Already have an account?
+        <a href="/auth/login-page" class="auth-link">Sign in</a>
+      </p>
+
+    </div>
+  </div>
+
+  <script>
+    // Redirect if already logged in
+    if (localStorage.getItem('oc_token')) {
+      window.location.href = '/';
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const btn    = document.getElementById('submitBtn');
+      const errBox = document.getElementById('authError');
+
+      btn.disabled = true;
+      btn.classList.add('btn--loading');
+      errBox.style.display = 'none';
+
+      const username = document.getElementById('username').value.trim();
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      try {
+        const res  = await fetch('/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, password }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          errBox.textContent   = data.error || 'Registration failed';
+          errBox.style.display = 'block';
+          return;
+        }
+
+        localStorage.setItem('oc_token',    data.token);
+        localStorage.setItem('oc_username', data.username);
+        window.location.href = '/';
+
+      } catch (err) {
+        errBox.textContent   = 'Network error — please try again';
+        errBox.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('btn--loading');
+      }
+    }
+  </script>
+</body>
+</html>

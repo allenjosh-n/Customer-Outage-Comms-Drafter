@@ -1,0 +1,63 @@
+"""
+User model — SQLite-backed, no ORM required.
+Database file is created automatically next to this package.
+"""
+import sqlite3
+import os
+import bcrypt
+
+DB_PATH = os.path.join(os.path.dirname(__file__), "..", "users.db")
+
+
+def _get_conn():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db():
+    """Create the users table if it doesn't exist."""
+    with _get_conn() as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id       INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT    NOT NULL UNIQUE,
+                email    TEXT    NOT NULL UNIQUE,
+                password TEXT    NOT NULL,
+                created  DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+
+
+def create_user(username: str, email: str, password: str) -> dict | None:
+    """Hash password and insert user. Returns the new user or None on duplicate."""
+    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    try:
+        with _get_conn() as conn:
+            cursor = conn.execute(
+                "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
+                (username.strip(), email.strip().lower(), hashed),
+            )
+            conn.commit()
+            return {"id": cursor.lastrowid, "username": username, "email": email}
+    except sqlite3.IntegrityError:
+        return None  # username or email already taken
+
+
+def get_user_by_username(username: str) -> sqlite3.Row | None:
+    with _get_conn() as conn:
+        return conn.execute(
+            "SELECT * FROM users WHERE username = ?", (username.strip(),)
+        ).fetchone()
+
+
+def get_user_by_email(email: str) -> sqlite3.Row | None:
+    with _get_conn() as conn:
+        return conn.execute(
+            "SELECT * FROM users WHERE email = ?", (email.strip().lower(),)
+        ).fetchone()
+
+
+def verify_password(plain: str, hashed: str) -> bool:
+    return bcrypt.checkpw(plain.encode(), hashed.encode())

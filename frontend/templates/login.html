@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OutageComms — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body class="auth-page">
+
+  <div class="auth-container">
+    <div class="auth-card">
+
+      <!-- Brand -->
+      <div class="auth-brand">
+        <div class="brand-pulse pulse--low"></div>
+        <span class="brand-name">OutageComms</span>
+      </div>
+
+      <h1 class="auth-title">Welcome back</h1>
+      <p class="auth-subtitle">Sign in to your incident workspace</p>
+
+      <div id="authError" class="auth-error" style="display:none"></div>
+
+      <form id="loginForm" class="auth-form" onsubmit="handleLogin(event)">
+
+        <div class="field-group">
+          <label class="field-label" for="username">Username</label>
+          <input
+            type="text" id="username" name="username"
+            class="auth-input" placeholder="your username"
+            autocomplete="username" required
+          >
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="password">Password</label>
+          <input
+            type="password" id="password" name="password"
+            class="auth-input" placeholder="••••••••"
+            autocomplete="current-password" required
+          >
+        </div>
+
+        <button type="submit" class="generate-btn auth-submit" id="submitBtn">
+          <span class="btn-label">Sign In</span>
+          <span class="btn-loader" id="btnLoader"></span>
+        </button>
+
+      </form>
+
+      <p class="auth-switch">
+        Don't have an account?
+        <a href="/auth/register-page" class="auth-link">Create one</a>
+      </p>
+
+    </div>
+  </div>
+
+  <script>
+    // Redirect if already logged in
+    if (localStorage.getItem('oc_token')) {
+      window.location.href = '/';
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const btn    = document.getElementById('submitBtn');
+      const loader = document.getElementById('btnLoader');
+      const errBox = document.getElementById('authError');
+
+      btn.disabled = true;
+      btn.classList.add('btn--loading');
+      errBox.style.display = 'none';
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      try {
+        const res  = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          errBox.textContent  = data.error || 'Login failed';
+          errBox.style.display = 'block';
+          return;
+        }
+
+        localStorage.setItem('oc_token',    data.token);
+        localStorage.setItem('oc_username', data.username);
+        window.location.href = '/';
+
+      } catch (err) {
+        errBox.textContent  = 'Network error — please try again';
+        errBox.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('btn--loading');
+      }
+    }
+  </script>
+</body>
+</html>

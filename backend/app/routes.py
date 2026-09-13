@@ -3,6 +3,7 @@ from groq import Groq
 import os
 
 from .prompts import phase_detection_prompt, communication_prompt
+from .auth_middleware import jwt_required
 
 bp = Blueprint("main", __name__)
 
@@ -33,6 +34,7 @@ def debug():
 
 
 @bp.route("/detect-phase", methods=["POST"])
+@jwt_required
 def detect_phase():
    
     data     = request.get_json()
@@ -62,6 +64,7 @@ def detect_phase():
 
 
 @bp.route("/generate", methods=["POST"])
+@jwt_required
 def generate():
     """
     Generate a customer communication for a specific incident phase.

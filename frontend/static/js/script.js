@@ -1,3 +1,37 @@
+// ─── Auth helpers ─────────────────────────────────────────────────────────────
+function getToken() {
+  return localStorage.getItem('oc_token') || '';
+}
+
+function authHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${getToken()}`,
+  };
+}
+
+function logout() {
+  localStorage.removeItem('oc_token');
+  localStorage.removeItem('oc_username');
+  window.location.href = '/auth/login-page';
+}
+
+function initUserInfo() {
+  const token    = getToken();
+  const username = localStorage.getItem('oc_username') || '';
+
+  if (!token) {
+    window.location.href = '/auth/login-page';
+    return;
+  }
+
+  // Show username and avatar initial in header
+  const avatar = document.getElementById('userAvatar');
+  const name   = document.getElementById('userName');
+  if (avatar) avatar.textContent = username.charAt(0).toUpperCase();
+  if (name)   name.textContent   = username;
+}
+
 // ─── State ────────────────────────────────────────────────────────────────────
 const filledPhases   = new Set();  // tracks which cards have been drafted
 const summaryEntries = [];         // { phase, timeline, entry }
@@ -154,9 +188,11 @@ async function generateDraft() {
     // Step 1 — detect phase
     const detectRes = await fetch('/detect-phase', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ timeline }),
     });
+
+    if (detectRes.status === 401) { logout(); return; }
     const { phase } = await detectRes.json();
 
     showPhaseChip(phase);
@@ -171,9 +207,10 @@ async function generateDraft() {
     // Step 2 — generate communication
     const genRes = await fetch('/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ timeline, severity, tone, phase }),
     });
+    if (genRes.status === 401) { logout(); return; }
     const data = await genRes.json();
 
     if (cardEl) {
@@ -234,4 +271,5 @@ function resetAll() {
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
+initUserInfo();
 updateSeverity('Low');
