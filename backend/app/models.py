@@ -1,17 +1,16 @@
 """
 User model — SQLite-backed, no ORM required.
-Database file is created automatically next to this package.
+Uses werkzeug's built-in password hashing (pbkdf2) — no C extensions needed.
 """
 import sqlite3
 import os
-from passlib.context import CryptContext
+from werkzeug.security import generate_password_hash, check_password_hash
 
+# /tmp is writable on Vercel serverless; local dev uses backend/ folder
 DB_PATH = os.environ.get(
     "DB_PATH",
     os.path.join(os.path.dirname(__file__), "..", "users.db")
 )
-
-_pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def _get_conn():
@@ -37,7 +36,7 @@ def init_db():
 
 def create_user(username: str, email: str, password: str) -> dict | None:
     """Hash password and insert user. Returns the new user or None on duplicate."""
-    hashed = _pwd_ctx.hash(password)
+    hashed = generate_password_hash(password)
     try:
         with _get_conn() as conn:
             cursor = conn.execute(
@@ -65,4 +64,4 @@ def get_user_by_email(email: str) -> sqlite3.Row | None:
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return _pwd_ctx.verify(plain, hashed)
+    return check_password_hash(hashed, plain)
