@@ -14,13 +14,17 @@ _USE_PG = bool(DATABASE_URL)
 
 def _pg_conn():
     import pg8000.native
+    import ssl
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
     return pg8000.native.Connection(
         user=_pg_param("user"),
         password=_pg_param("password"),
         host=_pg_param("host"),
         port=int(_pg_param("port") or 5432),
         database=_pg_param("database"),
-        ssl_context=True,
+        ssl_context=ctx,
     )
 
 
