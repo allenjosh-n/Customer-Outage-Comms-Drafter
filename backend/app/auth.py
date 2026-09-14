@@ -2,7 +2,7 @@
 Auth blueprint — /auth/register and /auth/login
 """
 from flask import Blueprint, request, jsonify, render_template
-from .models import create_user, get_user_by_username, get_user_by_email, verify_password
+from .models import create_user, get_user_by_username, verify_password
 from .auth_middleware import create_token
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
