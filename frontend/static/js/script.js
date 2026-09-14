@@ -1,95 +1,3 @@
-// ─── History drawer ───────────────────────────────────────────────────────────
-function openHistoryPanel() {
-  document.getElementById('historyOverlay').classList.add('active');
-  document.getElementById('historyDrawer').classList.add('active');
-  loadHistory();
-}
-
-function closeHistoryPanel() {
-  document.getElementById('historyOverlay').classList.remove('active');
-  document.getElementById('historyDrawer').classList.remove('active');
-}
-
-// ─── Load history ─────────────────────────────────────────────────────────────
-async function loadHistory() {
-  const list = document.getElementById('historyList');
-  list.innerHTML = '<p class="placeholder-text" style="padding:var(--space-4)">Loading…</p>';
-
-  try {
-    const res = await fetch('/incidents', { headers: authHeaders() });
-    if (res.status === 401) { logout(); return; }
-
-    const contentType = res.headers.get('content-type') || '';
-    if (!contentType.includes('application/json')) {
-      const text = await res.text();
-      list.innerHTML = `<p class="placeholder-text" style="padding:var(--space-4);color:var(--red)">Server error — check logs.<br><small>${text.substring(0, 200)}</small></p>`;
-      return;
-    }
-
-    const data = await res.json();
-    if (data.error) {
-      list.innerHTML = `<p class="placeholder-text" style="padding:var(--space-4);color:var(--red)">${data.error}</p>`;
-      return;
-    }
-    renderHistory(data.incidents || []);
-  } catch (e) {
-    list.innerHTML = `<p class="placeholder-text" style="padding:var(--space-4);color:var(--red)">Error: ${e.message}</p>`;
-  }
-}
-
-function renderHistory(incidents) {
-  const list = document.getElementById('historyList');
-
-  if (!incidents.length) {
-    list.innerHTML = '<div class="history-empty">No past incidents yet.<br>Complete an incident and start a new one to save it here.</div>';
-    return;
-  }
-
-  const phaseColors = { initial: 'var(--red)', progress: 'var(--amber)', resolved: 'var(--green)' };
-  const phaseLabels = { initial: 'Initial Alert', progress: 'In Progress', resolved: 'Resolved' };
-
-  list.innerHTML = incidents.map((inc, idx) => {
-    const date = new Date(inc.created).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
-
-    const entriesHtml = (inc.entries || []).map(e => `
-      <div class="history-entry history-entry--${e.phase}">
-        <div class="history-entry-phase" style="color:${phaseColors[e.phase] || 'var(--teal)'}">
-          ${phaseLabels[e.phase] || e.phase}
-        </div>
-        <div class="history-entry-timeline">${escapeHtml(e.timeline || '')}</div>
-        <div class="history-entry-text">${escapeHtml(e.entry || '').replace(/•/g, '<span class="log-bullet">•</span>')}</div>
-      </div>
-    `).join('');
-
-    return `
-      <div class="history-card">
-        <div class="history-card-header">
-          <span class="card-badge" style="background:rgba(0,201,167,0.1);border-color:rgba(0,201,167,0.25);color:var(--teal)">
-            Incident #${incidents.length - idx}
-          </span>
-          <span class="history-date">${date}</span>
-        </div>
-        <div class="history-entries">${entriesHtml}</div>
-      </div>
-    `;
-  }).join('');
-}
-
-// ─── Save incident to history ─────────────────────────────────────────────────
-async function saveCurrentIncident() {
-  if (!summaryEntries.length) return;
-  const severity = document.getElementById('severity').value;
-  try {
-    await fetch('/incidents/save', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ severity, entries: summaryEntries }),
-    });
-  } catch (e) {
-    console.warn('Could not save incident to history:', e);
-  }
-}
-
 // ─── Auth helpers ─────────────────────────────────────────────────────────────
 function getToken() {
   return localStorage.getItem('oc_token') || '';
@@ -333,10 +241,7 @@ async function generateDraft() {
 }
 
 // ─── Reset ────────────────────────────────────────────────────────────────────
-async function resetAll() {
-  // Save current incident to history before clearing
-  await saveCurrentIncident();
-
+function resetAll() {
   const placeholders = {
     initial:  'Waiting for initial alert entry…',
     progress: 'Waiting for in-progress entry…',

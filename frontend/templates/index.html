@@ -29,10 +29,6 @@
         <div class="user-info" id="userInfo">
           <div class="user-avatar" id="userAvatar"></div>
           <span class="user-name" id="userName"></span>
-          <button class="history-nav-btn" onclick="openHistoryPanel()">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            History
-          </button>
           <button class="logout-btn" onclick="logout()">Sign out</button>
         </div>
       </div>
@@ -128,8 +124,7 @@
         <p class="panel-desc">Cards update one at a time as the incident progresses. Each update is appended to the log below.</p>
       </div>
 
-      <!-- Drafts view -->
-      <div id="view-drafts">
+      <div class="output-grid">
 
         <!-- Initial -->
         <div class="output-card" id="card-initial">
@@ -230,39 +225,10 @@
         </div>
       </div>
 
-      </div><!-- /view-drafts -->
-
-      <!-- History view -->
-      <div id="view-history" style="display:none">
-        <div class="history-header">
-          <p class="panel-desc">Your last 5 completed incidents. Saved automatically when you start a new incident.</p>
-        </div>
-        <div id="historyList" class="history-list">
-          <p class="placeholder-text" style="padding:var(--space-4)">Loading history…</p>
-        </div>
-      </div>
-
     </section>
   </main>
 
   <div id="toast" class="toast" role="status" aria-live="polite">Copied to clipboard</div>
-
-  <!-- History Drawer -->
-  <div id="historyOverlay" class="history-overlay" onclick="closeHistoryPanel()"></div>
-  <aside id="historyDrawer" class="history-drawer">
-    <div class="history-drawer-header">
-      <div>
-        <h2 class="history-drawer-title">Incident History</h2>
-        <p class="history-drawer-sub">Your last 5 completed incidents</p>
-      </div>
-      <button class="history-close-btn" onclick="closeHistoryPanel()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-    <div id="historyList" class="history-list">
-      <p class="placeholder-text" style="padding:var(--space-4)">Loading…</p>
-    </div>
-  </aside>
 
   <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
