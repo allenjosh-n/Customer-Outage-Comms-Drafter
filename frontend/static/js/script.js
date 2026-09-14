@@ -68,6 +68,7 @@ function renderHistory(incidents) {
             <span class="card-badge" style="background:rgba(0,201,167,0.1);border-color:rgba(0,201,167,0.25);color:var(--teal)">
               Incident #${inc.id}
             </span>
+            <span class="history-drafted-by">by ${escapeHtml(inc.drafted_by || 'unknown')}</span>
           </div>
           <span class="history-date">${date}</span>
         </div>
@@ -91,6 +92,84 @@ async function saveCurrentIncident() {
     console.warn('Could not save incident to history:', e);
   }
 }
+// ─── Access Manager ───────────────────────────────────────────────────────────
+function openAccessManager() {
+  document.getElementById('amOverlay').classList.add('active');
+  document.getElementById('amDrawer').classList.add('active');
+  loadUsers();
+}
+
+function closeAccessManager() {
+  document.getElementById('amOverlay').classList.remove('active');
+  document.getElementById('amDrawer').classList.remove('active');
+}
+
+async function loadUsers() {
+  const list = document.getElementById('amUserList');
+  list.innerHTML = '<p class="placeholder-text" style="padding:var(--space-4)">Loading users…</p>';
+  try {
+    const res  = await fetch('/admin/users', { headers: authHeaders() });
+    if (res.status === 403) { list.innerHTML = '<p class="placeholder-text" style="padding:var(--space-4)">Access denied.</p>'; return; }
+    const data = await res.json();
+    renderUsers(data.users || []);
+  } catch (e) {
+    list.innerHTML = `<p class="placeholder-text" style="padding:var(--space-4);color:var(--red)">Error: ${e.message}</p>`;
+  }
+}
+
+function renderUsers(users) {
+  const list    = document.getElementById('amUserList');
+  const myId    = getMyUserId();
+  const roleLabels = { owner: 'Owner', incident_manager: 'Incident Manager', viewer: 'Viewer' };
+
+  list.innerHTML = users.map(u => {
+    const isOwner = u.role === 'owner';
+    const isMe    = u.id === myId;
+    const roleOptions = isOwner || isMe
+      ? `<span class="role-badge role--${u.role}">${roleLabels[u.role] || u.role}</span>`
+      : `<select class="am-role-select" onchange="changeRole(${u.id}, this.value)">
+          <option value="incident_manager" ${u.role === 'incident_manager' ? 'selected' : ''}>Incident Manager</option>
+          <option value="viewer"           ${u.role === 'viewer'           ? 'selected' : ''}>Viewer</option>
+        </select>`;
+
+    return `
+      <div class="am-user-row">
+        <div class="am-user-left">
+          <div class="user-avatar" style="flex-shrink:0">${u.username.charAt(0).toUpperCase()}</div>
+          <div>
+            <div class="am-username">${escapeHtml(u.username)}${isMe ? ' <span class="am-you">(you)</span>' : ''}</div>
+            <div class="am-email">${escapeHtml(u.email)}</div>
+          </div>
+        </div>
+        <div class="am-user-right">${roleOptions}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function getMyUserId() {
+  try {
+    const token   = getToken();
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.sub;
+  } catch { return null; }
+}
+
+async function changeRole(userId, newRole) {
+  try {
+    const res  = await fetch(`/admin/users/${userId}/role`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ role: newRole }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Failed to update role'); loadUsers(); return; }
+    showToast('Role updated');
+  } catch (e) {
+    showToast('Error updating role');
+    loadUsers();
+  }
+}
 
 // ─── Auth helpers ─────────────────────────────────────────────────────────────
 function getToken() {
@@ -107,23 +186,38 @@ function authHeaders() {
 function logout() {
   localStorage.removeItem('oc_token');
   localStorage.removeItem('oc_username');
+  localStorage.removeItem('oc_role');
   window.location.href = '/auth/login-page';
 }
 
 function initUserInfo() {
   const token    = getToken();
   const username = localStorage.getItem('oc_username') || '';
+  const role     = localStorage.getItem('oc_role') || 'viewer';
 
   if (!token) {
     window.location.href = '/auth/login-page';
     return;
   }
 
-  // Show username and avatar initial in header
   const avatar = document.getElementById('userAvatar');
   const name   = document.getElementById('userName');
   if (avatar) avatar.textContent = username.charAt(0).toUpperCase();
   if (name)   name.textContent   = username;
+
+  // Show Access Manager button only for owner
+  if (role === 'owner') {
+    const amBtn = document.getElementById('accessManagerBtn');
+    if (amBtn) amBtn.style.display = 'flex';
+  }
+
+  // Viewer — hide input panel, auto-switch to history tab
+  if (role === 'viewer') {
+    const inputPanel = document.querySelector('.input-panel');
+    if (inputPanel) inputPanel.style.display = 'none';
+    // Switch to history tab automatically
+    setTimeout(() => switchTab('history'), 100);
+  }
 }
 
 // ─── State ────────────────────────────────────────────────────────────────────

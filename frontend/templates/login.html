@@ -96,6 +96,7 @@
 
         localStorage.setItem('oc_token',    data.token);
         localStorage.setItem('oc_username', data.username);
+        localStorage.setItem('oc_role',     data.role || 'viewer');
         window.location.href = '/';
 
       } catch (err) {

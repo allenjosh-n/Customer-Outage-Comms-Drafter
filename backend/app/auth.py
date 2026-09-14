@@ -2,7 +2,7 @@
 Auth blueprint — /auth/register and /auth/login
 """
 from flask import Blueprint, request, jsonify, render_template
-from .models import create_user, get_user_by_username, verify_password
+from .models import create_user, get_user_by_username, verify_password, count_owners
 from .auth_middleware import create_token
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
@@ -16,6 +16,12 @@ def register_page():
 @auth_bp.route("/login-page")
 def login_page():
     return render_template("login.html")
+
+
+@auth_bp.route("/owner-exists", methods=["GET"])
+def owner_exists():
+    """Frontend checks this to show 'you will be owner' notice on register page."""
+    return jsonify({"exists": count_owners() > 0})
 
 
 @auth_bp.route("/register", methods=["POST"])
@@ -35,11 +41,13 @@ def register():
         return jsonify({"error": "Invalid email address"}), 400
 
     try:
-        user = create_user(username, email, password)
+        # First user ever becomes the owner
+        role = "owner" if count_owners() == 0 else "viewer"
+        user = create_user(username, email, password, role)
         if user is None:
             return jsonify({"error": "Username or email already taken"}), 409
-        token = create_token(user["id"], user["username"])
-        return jsonify({"token": token, "username": user["username"]}), 201
+        token = create_token(user["id"], user["username"], user["role"])
+        return jsonify({"token": token, "username": user["username"], "role": user["role"]}), 201
     except Exception as e:
         print(f"[register] ERROR: {e}")
         return jsonify({"error": str(e)}), 500
@@ -58,8 +66,8 @@ def login():
         user = get_user_by_username(username)
         if not user or not verify_password(password, user["password"]):
             return jsonify({"error": "Invalid username or password"}), 401
-        token = create_token(user["id"], user["username"])
-        return jsonify({"token": token, "username": user["username"]}), 200
+        token = create_token(user["id"], user["username"], user["role"])
+        return jsonify({"token": token, "username": user["username"], "role": user["role"]}), 200
     except Exception as e:
         print(f"[login] ERROR: {e}")
         return jsonify({"error": str(e)}), 500
