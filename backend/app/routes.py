@@ -143,6 +143,10 @@ def save_incident_route():
 @jwt_required
 def get_incidents_route():
     """Return last 5 incidents for the logged-in user."""
-    user_id = request.current_user.get("sub")
-    incidents = get_recent_incidents(user_id, limit=5)
-    return jsonify({"incidents": incidents}), 200
+    try:
+        user_id = request.current_user.get("sub")
+        incidents = get_recent_incidents(user_id, limit=5)
+        return jsonify({"incidents": incidents}), 200
+    except Exception as e:
+        print(f"[incidents] ERROR: {e}")
+        return jsonify({"error": str(e), "incidents": []}), 500

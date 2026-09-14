@@ -19,9 +19,13 @@ async function loadHistory() {
     const res  = await fetch('/incidents', { headers: authHeaders() });
     if (res.status === 401) { logout(); return; }
     const data = await res.json();
+    if (data.error) {
+      list.innerHTML = `<p class="placeholder-text" style="padding:var(--space-4);color:var(--red)">${data.error}</p>`;
+      return;
+    }
     renderHistory(data.incidents || []);
   } catch (e) {
-    list.innerHTML = '<p class="placeholder-text" style="padding:var(--space-4)">Failed to load history.</p>';
+    list.innerHTML = `<p class="placeholder-text" style="padding:var(--space-4);color:var(--red)">Error: ${e.message}</p>`;
   }
 }
 
