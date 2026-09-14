@@ -157,23 +157,36 @@ def _sqlite_get_by_username(username):
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def init_db():
+    """Called at startup — intentionally lightweight, tables created lazily on first use."""
+    pass
+
+
+_DB_READY = False
+
+def _ensure_db():
+    """Lazy init — create tables on first actual DB use, not at startup."""
+    global _DB_READY
+    if _DB_READY:
+        return
     try:
         if _USE_PG:
             _pg_init()
         else:
             _sqlite_init()
+        _DB_READY = True
     except Exception as e:
-        print(f"[init_db] WARNING: {e}")
-        # Don't crash startup — tables may already exist
+        print(f"[ensure_db] WARNING: {e}")
 
 
 def create_user(username: str, email: str, password: str):
+    _ensure_db()
     if _USE_PG:
         return _pg_create_user(username, email, password)
     return _sqlite_create_user(username, email, password)
 
 
 def get_user_by_username(username: str):
+    _ensure_db()
     if _USE_PG:
         return _pg_get_by_username(username)
     return _sqlite_get_by_username(username)
@@ -187,6 +200,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 def save_incident(user_id: int, severity: str, entries: list) -> bool:
     """Save a completed incident. entries is a list of log entry dicts."""
+    _ensure_db()
     import json
     entries_json = json.dumps(entries)
     try:
@@ -212,6 +226,7 @@ def save_incident(user_id: int, severity: str, entries: list) -> bool:
 
 def get_recent_incidents(user_id: int, limit: int = 5) -> list:
     """Return the most recent N incidents for a user, newest first."""
+    _ensure_db()
     import json
     try:
         if _USE_PG:
