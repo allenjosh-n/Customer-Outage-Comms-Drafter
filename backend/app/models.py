@@ -1,67 +1,153 @@
 """
-User model — SQLite-backed, no ORM required.
-Uses werkzeug's built-in password hashing (pbkdf2) — no C extensions needed.
+User model — Supabase (PostgreSQL) backed via pg8000 (pure Python, no C extensions).
+Falls back to SQLite for local development when DATABASE_URL is not set.
 """
-import sqlite3
 import os
+import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# /tmp is the only writable directory on Vercel serverless
-# Fall back to /tmp/users.db unless DB_PATH is explicitly set
-_default_db = "/tmp/users.db" if os.path.exists("/tmp") else os.path.join(
-    os.path.dirname(__file__), "..", "users.db"
-)
-DB_PATH = os.environ.get("DB_PATH", _default_db)
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+_USE_PG = bool(DATABASE_URL)
 
 
-def _get_conn():
-    conn = sqlite3.connect(DB_PATH)
+# ── PostgreSQL helpers (Supabase) ─────────────────────────────────────────────
+
+def _pg_conn():
+    import pg8000.native
+    return pg8000.native.Connection(
+        user=_pg_param("user"),
+        password=_pg_param("password"),
+        host=_pg_param("host"),
+        port=int(_pg_param("port") or 5432),
+        database=_pg_param("database"),
+        ssl_context=True,
+    )
+
+
+def _pg_param(key: str) -> str:
+    """Parse individual components from the DATABASE_URL."""
+    from urllib.parse import urlparse
+    p = urlparse(DATABASE_URL)
+    return {
+        "user":     p.username or "",
+        "password": p.password or "",
+        "host":     p.hostname or "",
+        "port":     str(p.port or 5432),
+        "database": (p.path or "/postgres").lstrip("/"),
+    }[key]
+
+
+def _pg_init():
+    conn = _pg_conn()
+    conn.run("""
+        CREATE TABLE IF NOT EXISTS users (
+            id       SERIAL PRIMARY KEY,
+            username TEXT NOT NULL UNIQUE,
+            email    TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            created  TIMESTAMPTZ DEFAULT NOW()
+        )
+    """)
+    conn.close()
+
+
+def _pg_create_user(username, email, password):
+    hashed = generate_password_hash(password)
+    conn = _pg_conn()
+    try:
+        rows = conn.run(
+            "INSERT INTO users (username, email, password) VALUES (:u, :e, :p) RETURNING id",
+            u=username.strip(), e=email.strip().lower(), p=hashed
+        )
+        conn.close()
+        return {"id": rows[0][0], "username": username, "email": email}
+    except Exception as ex:
+        conn.close()
+        if "unique" in str(ex).lower():
+            return None
+        raise
+
+
+def _pg_get_by_username(username):
+    conn = _pg_conn()
+    rows = conn.run(
+        "SELECT id, username, email, password FROM users WHERE username = :u",
+        u=username.strip()
+    )
+    conn.close()
+    if not rows:
+        return None
+    r = rows[0]
+    return {"id": r[0], "username": r[1], "email": r[2], "password": r[3]}
+
+
+# ── SQLite helpers (local dev fallback) ───────────────────────────────────────
+
+_SQLITE_PATH = os.path.join(os.path.dirname(__file__), "..", "users.db")
+
+
+def _sqlite_conn():
+    import sqlite3
+    conn = sqlite3.connect(_SQLITE_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
 
-def init_db():
-    """Create the users table if it doesn't exist."""
-    with _get_conn() as conn:
+def _sqlite_init():
+    with _sqlite_conn() as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id       INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT    NOT NULL UNIQUE,
-                email    TEXT    NOT NULL UNIQUE,
-                password TEXT    NOT NULL,
+                username TEXT NOT NULL UNIQUE,
+                email    TEXT NOT NULL UNIQUE,
+                password TEXT NOT NULL,
                 created  DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
         conn.commit()
 
 
-def create_user(username: str, email: str, password: str) -> dict | None:
-    """Hash password and insert user. Returns the new user or None on duplicate."""
+def _sqlite_create_user(username, email, password):
     hashed = generate_password_hash(password)
     try:
-        with _get_conn() as conn:
-            cursor = conn.execute(
+        with _sqlite_conn() as conn:
+            cur = conn.execute(
                 "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
-                (username.strip(), email.strip().lower(), hashed),
+                (username.strip(), email.strip().lower(), hashed)
             )
             conn.commit()
-            return {"id": cursor.lastrowid, "username": username, "email": email}
+            return {"id": cur.lastrowid, "username": username, "email": email}
     except sqlite3.IntegrityError:
-        return None  # username or email already taken
+        return None
 
 
-def get_user_by_username(username: str) -> sqlite3.Row | None:
-    with _get_conn() as conn:
-        return conn.execute(
+def _sqlite_get_by_username(username):
+    with _sqlite_conn() as conn:
+        row = conn.execute(
             "SELECT * FROM users WHERE username = ?", (username.strip(),)
         ).fetchone()
+    return dict(row) if row else None
 
 
-def get_user_by_email(email: str) -> sqlite3.Row | None:
-    with _get_conn() as conn:
-        return conn.execute(
-            "SELECT * FROM users WHERE email = ?", (email.strip().lower(),)
-        ).fetchone()
+# ── Public API ────────────────────────────────────────────────────────────────
+
+def init_db():
+    if _USE_PG:
+        _pg_init()
+    else:
+        _sqlite_init()
+
+
+def create_user(username: str, email: str, password: str):
+    if _USE_PG:
+        return _pg_create_user(username, email, password)
+    return _sqlite_create_user(username, email, password)
+
+
+def get_user_by_username(username: str):
+    if _USE_PG:
+        return _pg_get_by_username(username)
+    return _sqlite_get_by_username(username)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
