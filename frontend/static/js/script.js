@@ -68,9 +68,6 @@ function renderHistory(incidents) {
             <span class="card-badge" style="background:rgba(0,201,167,0.1);border-color:rgba(0,201,167,0.25);color:var(--teal)">
               Incident #${inc.id}
             </span>
-            <span class="card-badge" style="color:${sevCol};background:transparent;border-color:transparent">
-              ● ${sev} Severity
-            </span>
           </div>
           <span class="history-date">${date}</span>
         </div>
