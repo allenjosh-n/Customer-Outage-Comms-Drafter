@@ -299,7 +299,8 @@ def delete_incident(incident_id: int) -> bool:
         return False
 
 
-def get_recent_incidents(limit: int = 5) -> list:    import json
+def get_recent_incidents(limit: int = 5) -> list:
+    import json
     try:
         rows = _pg_get_incidents(limit) if _USE_PG else _sqlite_get_incidents(limit)
         return [
