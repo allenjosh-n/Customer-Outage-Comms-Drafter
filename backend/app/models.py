@@ -18,12 +18,15 @@ def _pg_conn():
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
+    # Parse URL but override password directly to avoid URL-encoding issues
+    from urllib.parse import urlparse, unquote
+    p = urlparse(DATABASE_URL)
     return pg8000.native.Connection(
-        user=_pg_param("user"),
-        password=_pg_param("password"),
-        host=_pg_param("host"),
-        port=int(_pg_param("port") or 5432),
-        database=_pg_param("database"),
+        user=unquote(p.username or ""),
+        password=unquote(p.password or ""),
+        host=p.hostname or "",
+        port=int(p.port or 6543),
+        database=(p.path or "/postgres").lstrip("/"),
         ssl_context=ctx,
     )
 
@@ -43,6 +46,10 @@ def _pg_param(key: str) -> str:
 
 def _pg_init():
     conn = _pg_conn()
+    # Debug: confirm connection params (remove after fix)
+    from urllib.parse import urlparse, unquote
+    p = urlparse(DATABASE_URL)
+    print(f"[DB] connecting as user={unquote(p.username or '')} host={p.hostname} port={p.port}")
     conn.run("""
         CREATE TABLE IF NOT EXISTS users (
             id       SERIAL PRIMARY KEY,
