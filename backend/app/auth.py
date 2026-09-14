@@ -25,7 +25,6 @@ def register():
     email    = data.get("email", "").strip()
     password = data.get("password", "")
 
-    # Validation
     if not username or not email or not password:
         return jsonify({"error": "username, email and password are required"}), 400
     if len(username) < 3:
@@ -35,12 +34,15 @@ def register():
     if "@" not in email:
         return jsonify({"error": "Invalid email address"}), 400
 
-    user = create_user(username, email, password)
-    if user is None:
-        return jsonify({"error": "Username or email already taken"}), 409
-
-    token = create_token(user["id"], user["username"])
-    return jsonify({"token": token, "username": user["username"]}), 201
+    try:
+        user = create_user(username, email, password)
+        if user is None:
+            return jsonify({"error": "Username or email already taken"}), 409
+        token = create_token(user["id"], user["username"])
+        return jsonify({"token": token, "username": user["username"]}), 201
+    except Exception as e:
+        print(f"[register] ERROR: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @auth_bp.route("/login", methods=["POST"])
@@ -52,9 +54,12 @@ def login():
     if not username or not password:
         return jsonify({"error": "username and password are required"}), 400
 
-    user = get_user_by_username(username)
-    if not user or not verify_password(password, user["password"]):
-        return jsonify({"error": "Invalid username or password"}), 401
-
-    token = create_token(user["id"], user["username"])
-    return jsonify({"token": token, "username": user["username"]}), 200
+    try:
+        user = get_user_by_username(username)
+        if not user or not verify_password(password, user["password"]):
+            return jsonify({"error": "Invalid username or password"}), 401
+        token = create_token(user["id"], user["username"])
+        return jsonify({"token": token, "username": user["username"]}), 200
+    except Exception as e:
+        print(f"[login] ERROR: {e}")
+        return jsonify({"error": str(e)}), 500

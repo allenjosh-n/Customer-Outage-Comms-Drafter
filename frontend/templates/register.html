@@ -101,9 +101,7 @@
           errBox.textContent   = data.error || 'Registration failed';
           errBox.style.display = 'block';
           return;
-        }
-
-        localStorage.setItem('oc_token',    data.token);
+        }        localStorage.setItem('oc_token',    data.token);
         localStorage.setItem('oc_username', data.username);
         window.location.href = '/';
 
