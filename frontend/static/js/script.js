@@ -1,3 +1,100 @@
+// ─── Tab switching ────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  const draftsView  = document.getElementById('view-drafts');
+  const historyView = document.getElementById('view-history');
+  const tabDrafts   = document.getElementById('tab-drafts');
+  const tabHistory  = document.getElementById('tab-history');
+
+  if (tab === 'history') {
+    draftsView.style.display  = 'none';
+    historyView.style.display = 'block';
+    tabDrafts.classList.remove('tab-btn--active');
+    tabHistory.classList.add('tab-btn--active');
+    loadHistory();
+  } else {
+    historyView.style.display = 'none';
+    draftsView.style.display  = 'block';
+    tabHistory.classList.remove('tab-btn--active');
+    tabDrafts.classList.add('tab-btn--active');
+  }
+}
+
+// ─── Load history ─────────────────────────────────────────────────────────────
+async function loadHistory() {
+  const list = document.getElementById('historyList');
+  list.innerHTML = '<p class="placeholder-text" style="padding:var(--space-4)">Loading…</p>';
+
+  try {
+    const res  = await fetch('/incidents', { headers: authHeaders() });
+    if (res.status === 401) { logout(); return; }
+    const data = await res.json();
+    renderHistory(data.incidents || []);
+  } catch (e) {
+    list.innerHTML = '<p class="placeholder-text" style="padding:var(--space-4)">Failed to load history.</p>';
+  }
+}
+
+function renderHistory(incidents) {
+  const list = document.getElementById('historyList');
+
+  if (!incidents.length) {
+    list.innerHTML = '<div class="history-empty">No past incidents yet.<br>Complete an incident and start a new one to save it here.</div>';
+    return;
+  }
+
+  const phaseColors = { initial: 'var(--red)', progress: 'var(--amber)', resolved: 'var(--green)' };
+  const phaseLabels = { initial: 'Initial Alert', progress: 'In Progress', resolved: 'Resolved' };
+  const sevColors   = { Low: 'var(--green)', Medium: 'var(--amber)', High: 'var(--red)' };
+
+  list.innerHTML = incidents.map(inc => {
+    const date    = new Date(inc.created).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+    const sev     = inc.severity || 'Low';
+    const sevCol  = sevColors[sev] || 'var(--text-muted)';
+
+    const entriesHtml = (inc.entries || []).map(e => `
+      <div class="history-entry history-entry--${e.phase}">
+        <div class="history-entry-phase" style="color:${phaseColors[e.phase] || 'var(--teal)'}">
+          ${phaseLabels[e.phase] || e.phase}
+        </div>
+        <div class="history-entry-timeline">${escapeHtml(e.timeline || '')}</div>
+        <div class="history-entry-text">${escapeHtml(e.entry || '').replace(/•/g, '<span class="log-bullet">•</span>')}</div>
+      </div>
+    `).join('');
+
+    return `
+      <div class="history-card">
+        <div class="history-card-header">
+          <div class="history-meta">
+            <span class="card-badge" style="background:rgba(0,201,167,0.1);border-color:rgba(0,201,167,0.25);color:var(--teal)">
+              Incident #${inc.id}
+            </span>
+            <span class="card-badge" style="color:${sevCol};background:transparent;border-color:transparent">
+              ● ${sev} Severity
+            </span>
+          </div>
+          <span class="history-date">${date}</span>
+        </div>
+        <div class="history-entries">${entriesHtml}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─── Save incident to history ─────────────────────────────────────────────────
+async function saveCurrentIncident() {
+  if (!summaryEntries.length) return;
+  const severity = document.getElementById('severity').value;
+  try {
+    await fetch('/incidents/save', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ severity, entries: summaryEntries }),
+    });
+  } catch (e) {
+    console.warn('Could not save incident to history:', e);
+  }
+}
+
 // ─── Auth helpers ─────────────────────────────────────────────────────────────
 function getToken() {
   return localStorage.getItem('oc_token') || '';
@@ -241,7 +338,10 @@ async function generateDraft() {
 }
 
 // ─── Reset ────────────────────────────────────────────────────────────────────
-function resetAll() {
+async function resetAll() {
+  // Save current incident to history before clearing
+  await saveCurrentIncident();
+
   const placeholders = {
     initial:  'Waiting for initial alert entry…',
     progress: 'Waiting for in-progress entry…',

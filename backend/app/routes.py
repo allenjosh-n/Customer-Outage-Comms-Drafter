@@ -4,6 +4,7 @@ import os
 
 from .prompts import phase_detection_prompt, communication_prompt
 from .auth_middleware import jwt_required
+from .models import save_incident, get_recent_incidents
 
 bp = Blueprint("main", __name__)
 
@@ -118,3 +119,30 @@ def generate():
             "text":          f"Error: {e}",
             "summary_entry": f"Error: {e}",
         }), 500
+
+
+@bp.route("/incidents/save", methods=["POST"])
+@jwt_required
+def save_incident_route():
+    """Save a completed incident to history."""
+    data     = request.get_json() or {}
+    severity = data.get("severity", "Low")
+    entries  = data.get("entries", [])
+    user_id  = request.current_user.get("sub")
+
+    if not entries:
+        return jsonify({"error": "No entries provided"}), 400
+
+    ok = save_incident(user_id, severity, entries)
+    if ok:
+        return jsonify({"saved": True}), 201
+    return jsonify({"error": "Failed to save incident"}), 500
+
+
+@bp.route("/incidents", methods=["GET"])
+@jwt_required
+def get_incidents_route():
+    """Return last 5 incidents for the logged-in user."""
+    user_id = request.current_user.get("sub")
+    incidents = get_recent_incidents(user_id, limit=5)
+    return jsonify({"incidents": incidents}), 200

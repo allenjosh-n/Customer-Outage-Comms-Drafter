@@ -55,6 +55,15 @@ def _pg_init():
             created  TIMESTAMPTZ DEFAULT NOW()
         )
     """)
+    conn.run("""
+        CREATE TABLE IF NOT EXISTS incidents (
+            id         SERIAL PRIMARY KEY,
+            user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            severity   TEXT NOT NULL DEFAULT 'Low',
+            entries    TEXT NOT NULL,
+            created    TIMESTAMPTZ DEFAULT NOW()
+        )
+    """)
     conn.close()
 
 
@@ -111,6 +120,15 @@ def _sqlite_init():
                 created  DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS incidents (
+                id       INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                severity TEXT NOT NULL DEFAULT 'Low',
+                entries  TEXT NOT NULL,
+                created  DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         conn.commit()
 
 
@@ -163,3 +181,72 @@ def get_user_by_username(username: str):
 
 def verify_password(plain: str, hashed: str) -> bool:
     return check_password_hash(hashed, plain)
+
+
+# ── Incident history ──────────────────────────────────────────────────────────
+
+def save_incident(user_id: int, severity: str, entries: list) -> bool:
+    """Save a completed incident. entries is a list of log entry dicts."""
+    import json
+    entries_json = json.dumps(entries)
+    try:
+        if _USE_PG:
+            conn = _pg_conn()
+            conn.run(
+                "INSERT INTO incidents (user_id, severity, entries) VALUES (:uid, :sev, :ent)",
+                uid=user_id, sev=severity, ent=entries_json
+            )
+            conn.close()
+        else:
+            with _sqlite_conn() as conn:
+                conn.execute(
+                    "INSERT INTO incidents (user_id, severity, entries) VALUES (?, ?, ?)",
+                    (user_id, severity, entries_json)
+                )
+                conn.commit()
+        return True
+    except Exception as e:
+        print(f"[save_incident] ERROR: {e}")
+        return False
+
+
+def get_recent_incidents(user_id: int, limit: int = 5) -> list:
+    """Return the most recent N incidents for a user, newest first."""
+    import json
+    try:
+        if _USE_PG:
+            conn = _pg_conn()
+            rows = conn.run(
+                "SELECT id, severity, entries, created FROM incidents "
+                "WHERE user_id = :uid ORDER BY created DESC LIMIT :lim",
+                uid=user_id, lim=limit
+            )
+            conn.close()
+            return [
+                {
+                    "id":       r[0],
+                    "severity": r[1],
+                    "entries":  json.loads(r[2]),
+                    "created":  str(r[3]),
+                }
+                for r in rows
+            ]
+        else:
+            with _sqlite_conn() as conn:
+                rows = conn.execute(
+                    "SELECT id, severity, entries, created FROM incidents "
+                    "WHERE user_id = ? ORDER BY created DESC LIMIT ?",
+                    (user_id, limit)
+                ).fetchall()
+            return [
+                {
+                    "id":       r["id"],
+                    "severity": r["severity"],
+                    "entries":  json.loads(r["entries"]),
+                    "created":  r["created"],
+                }
+                for r in rows
+            ]
+    except Exception as e:
+        print(f"[get_recent_incidents] ERROR: {e}")
+        return []
