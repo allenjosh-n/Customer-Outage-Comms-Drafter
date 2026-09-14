@@ -1,22 +1,13 @@
-// ─── Tab switching ────────────────────────────────────────────────────────────
-function switchTab(tab) {
-  const draftsView  = document.getElementById('view-drafts');
-  const historyView = document.getElementById('view-history');
-  const tabDrafts   = document.getElementById('tab-drafts');
-  const tabHistory  = document.getElementById('tab-history');
+// ─── History drawer ───────────────────────────────────────────────────────────
+function openHistoryPanel() {
+  document.getElementById('historyOverlay').classList.add('active');
+  document.getElementById('historyDrawer').classList.add('active');
+  loadHistory();
+}
 
-  if (tab === 'history') {
-    draftsView.style.display  = 'none';
-    historyView.style.display = 'block';
-    tabDrafts.classList.remove('tab-btn--active');
-    tabHistory.classList.add('tab-btn--active');
-    loadHistory();
-  } else {
-    historyView.style.display = 'none';
-    draftsView.style.display  = 'block';
-    tabHistory.classList.remove('tab-btn--active');
-    tabDrafts.classList.add('tab-btn--active');
-  }
+function closeHistoryPanel() {
+  document.getElementById('historyOverlay').classList.remove('active');
+  document.getElementById('historyDrawer').classList.remove('active');
 }
 
 // ─── Load history ─────────────────────────────────────────────────────────────
@@ -44,12 +35,9 @@ function renderHistory(incidents) {
 
   const phaseColors = { initial: 'var(--red)', progress: 'var(--amber)', resolved: 'var(--green)' };
   const phaseLabels = { initial: 'Initial Alert', progress: 'In Progress', resolved: 'Resolved' };
-  const sevColors   = { Low: 'var(--green)', Medium: 'var(--amber)', High: 'var(--red)' };
 
-  list.innerHTML = incidents.map(inc => {
-    const date    = new Date(inc.created).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
-    const sev     = inc.severity || 'Low';
-    const sevCol  = sevColors[sev] || 'var(--text-muted)';
+  list.innerHTML = incidents.map((inc, idx) => {
+    const date = new Date(inc.created).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 
     const entriesHtml = (inc.entries || []).map(e => `
       <div class="history-entry history-entry--${e.phase}">
@@ -64,14 +52,9 @@ function renderHistory(incidents) {
     return `
       <div class="history-card">
         <div class="history-card-header">
-          <div class="history-meta">
-            <span class="card-badge" style="background:rgba(0,201,167,0.1);border-color:rgba(0,201,167,0.25);color:var(--teal)">
-              Incident #${inc.id}
-            </span>
-            <span class="card-badge" style="color:${sevCol};background:transparent;border-color:transparent">
-              ● ${sev} Severity
-            </span>
-          </div>
+          <span class="card-badge" style="background:rgba(0,201,167,0.1);border-color:rgba(0,201,167,0.25);color:var(--teal)">
+            Incident #${incidents.length - idx}
+          </span>
           <span class="history-date">${date}</span>
         </div>
         <div class="history-entries">${entriesHtml}</div>
