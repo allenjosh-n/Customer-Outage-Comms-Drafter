@@ -132,10 +132,14 @@ def _sqlite_get_by_username(username):
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def init_db():
-    if _USE_PG:
-        _pg_init()
-    else:
-        _sqlite_init()
+    try:
+        if _USE_PG:
+            _pg_init()
+        else:
+            _sqlite_init()
+    except Exception as e:
+        print(f"[init_db] WARNING: {e}")
+        # Don't crash startup — tables may already exist
 
 
 def create_user(username: str, email: str, password: str):
