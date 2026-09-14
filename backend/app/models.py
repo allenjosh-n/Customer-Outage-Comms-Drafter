@@ -46,10 +46,6 @@ def _pg_param(key: str) -> str:
 
 def _pg_init():
     conn = _pg_conn()
-    # Debug: confirm connection params (remove after fix)
-    from urllib.parse import urlparse, unquote
-    p = urlparse(DATABASE_URL)
-    print(f"[DB] connecting as user={unquote(p.username or '')} host={p.hostname} port={p.port}")
     conn.run("""
         CREATE TABLE IF NOT EXISTS users (
             id       SERIAL PRIMARY KEY,
