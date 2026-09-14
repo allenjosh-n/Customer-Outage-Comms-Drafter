@@ -1,6 +1,6 @@
 # Customer Outage Comms Drafter
 
-> An AI-powered incident communication tool that converts raw technical timelines into professional, customer-safe messages — automatically detecting the incident phase and drafting the right update every time.
+> An AI-powered incident communication tool that converts raw technical timelines into professional, customer-safe messages — with role-based access control, shared incident history, and a team management panel.
 
 ## Live Deployments
 
@@ -8,8 +8,6 @@
 |---|---|---|
 | Render | https://customer-outage-comms-drafter.onrender.com | ✅ Live |
 | Vercel | https://customer-outage-comms-drafter.vercel.app | ✅ Live |
-
-> **Primary:** Use the Render link for best performance. Vercel serves as a backup.
 
 ---
 
@@ -23,13 +21,14 @@ This tool solves that by automating the full communication pipeline — from pha
 
 ## How It Works
 
-1. Register or log in to your account
-2. Paste a single timeline entry (e.g. `09:00 — Users unable to log in`)
-3. Click **Draft Update**
+1. Register or log in — the first user automatically becomes the **Owner**
+2. Owner promotes team members to **Incident Manager** via the Access Manager
+3. Incident Manager enters a timeline update and clicks **Draft Update**
 4. The AI classifies the entry as `initial`, `progress`, or `resolved`
 5. The matching communication card is populated with a customer-facing message
 6. Each update appends a bullet-point entry to the internal Incident Summary Log
-7. Export the full report as a `.txt` file when the incident is closed
+7. Click **Start New Incident** to save the incident to shared history and reset
+8. All roles can view the **History** tab — Viewers see only this tab
 
 ---
 
@@ -37,16 +36,34 @@ This tool solves that by automating the full communication pipeline — from pha
 
 | Feature | Description |
 |---|---|
-| JWT Authentication | Register and login with secure JWT-based auth (12h token expiry) |
+| JWT Authentication | Secure register/login with 12h token expiry |
+| Role-Based Access Control | Owner, Incident Manager, Viewer roles with enforced permissions |
+| Access Manager | Owner-only panel to grant/revoke team member roles |
 | Auto Phase Detection | Classifies each timeline entry into `initial`, `in-progress`, or `resolved` |
 | Customer Message Generation | Produces jargon-free, tone-adjusted customer updates |
-| Severity Levels | Supports Low, Medium, and High severity |
+| Severity Levels | Low, Medium, and High severity with visual indicator |
 | Tone Selection | Calm, Empathetic, or Concise communication styles |
-| Internal Incident Log | Structured bullet-point summary for incident management |
+| Shared Incident History | Last 5 incidents visible to all roles, with `drafted by` attribution |
+| Delete Incident | Owner can delete any incident from shared history |
+| Internal Incident Log | Structured bullet-point summary for the incident team |
 | Report Export | Download the full incident log as a `.txt` file |
 | Copy to Clipboard | One-click copy for any generated communication |
-| Persistent User Accounts | User data stored in Supabase PostgreSQL — survives server restarts |
+| Persistent User Accounts | Users and incidents stored in Supabase PostgreSQL |
 | Responsive UI | Clean single-page interface built for operational teams |
+
+---
+
+## Roles & Permissions
+
+| Role | Generate Updates | View History | Delete Incidents | Access Manager |
+|---|---|---|---|---|
+| **Owner** | ✅ | ✅ | ✅ | ✅ |
+| **Incident Manager** | ✅ | ✅ | ❌ | ❌ |
+| **Viewer** | ❌ | ✅ | ❌ | ❌ |
+
+- The **first user to register** becomes the Owner — there can only be one
+- All other users default to **Viewer** until the Owner promotes them
+- The Owner opens **Access Manager** (top header) to change roles
 
 ---
 
@@ -58,6 +75,7 @@ This tool solves that by automating the full communication pipeline — from pha
 | Backend | Python 3, Flask (Blueprint pattern) |
 | AI Inference | Groq API — Llama 3.3 70B Versatile |
 | Authentication | JWT (PyJWT) + werkzeug password hashing |
+| Authorization | Role-based `@role_required` decorator |
 | Database | Supabase PostgreSQL (via pg8000) |
 | Config | python-dotenv — `.env` based configuration |
 
@@ -69,29 +87,29 @@ This tool solves that by automating the full communication pipeline — from pha
 Customer-Outage-Comms-Drafter/
 │
 ├── api/
-│   └── index.py              ← Vercel serverless entry point
+│   └── index.py                ← Vercel serverless entry point
 │
 ├── backend/
 │   ├── app/
-│   │   ├── __init__.py       ← App factory
-│   │   ├── routes.py         ← API endpoints (/detect-phase, /generate)
-│   │   ├── auth.py           ← Auth routes (/auth/register, /auth/login)
-│   │   ├── auth_middleware.py← JWT @jwt_required decorator
-│   │   ├── models.py         ← User model (Supabase + SQLite fallback)
-│   │   └── prompts.py        ← Isolated AI prompt templates
-│   ├── config.py             ← Loads env vars from .env
-│   ├── requirements.txt      ← Python dependencies
-│   └── run.py                ← Local entry point
+│   │   ├── __init__.py         ← App factory
+│   │   ├── routes.py           ← API endpoints
+│   │   ├── auth.py             ← Auth routes (/auth/register, /auth/login)
+│   │   ├── auth_middleware.py  ← @jwt_required, @role_required decorators
+│   │   ├── models.py           ← User + incident model (Supabase + SQLite fallback)
+│   │   └── prompts.py          ← AI prompt templates
+│   ├── config.py               ← Environment variable loader
+│   ├── requirements.txt        ← Python dependencies
+│   └── run.py                  ← Local entry point
 │
 ├── frontend/
 │   ├── static/
-│   │   ├── css/style.css     ← App styles
-│   │   ├── css/auth.css      ← Auth page styles
-│   │   └── js/script.js      ← Client-side logic + auth token handling
+│   │   ├── css/style.css       ← App styles
+│   │   ├── css/auth.css        ← Auth + Access Manager styles
+│   │   └── js/script.js        ← Client-side logic, role-aware UI
 │   └── templates/
-│       ├── index.html        ← Main app
-│       ├── login.html        ← Login page
-│       └── register.html     ← Register page
+│       ├── index.html          ← Main app
+│       ├── login.html          ← Login page
+│       └── register.html       ← Register page
 │
 ├── docs/
 │   ├── README.md
@@ -100,10 +118,10 @@ Customer-Outage-Comms-Drafter/
 ├── tests/
 │   └── test_groq.py
 │
-├── .env.example              ← Safe config template
-├── render.yaml               ← Render deployment config
-├── vercel.json               ← Vercel deployment config
-└── requirements.txt          ← Root requirements for Vercel
+├── .env.example
+├── render.yaml
+├── vercel.json
+└── requirements.txt
 ```
 
 ---
@@ -149,109 +167,84 @@ JWT_SECRET=your-long-random-secret
 DATABASE_URL=postgresql://postgres.xxxx:password@aws-0-region.pooler.supabase.com:6543/postgres
 ```
 
-- Get a free Groq key at [console.groq.com](https://console.groq.com)
-- Get a free Supabase DB at [supabase.com](https://supabase.com)
-- `JWT_SECRET` can be any long random string
+### 5. Set up Supabase (first time only)
 
-### 5. Run the app
+Run this in your Supabase SQL Editor:
+
+```sql
+CREATE TABLE IF NOT EXISTS users (
+    id       SERIAL PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    email    TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    role     TEXT NOT NULL DEFAULT 'viewer',
+    created  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS incidents (
+    id         SERIAL PRIMARY KEY,
+    drafted_by TEXT NOT NULL DEFAULT '',
+    severity   TEXT NOT NULL DEFAULT 'Low',
+    entries    TEXT NOT NULL,
+    created    TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### 6. Run the app
 
 ```bash
 python backend/run.py
 ```
 
-Open `http://127.0.0.1:5000` — you'll be redirected to the login page.
-
----
-
-## Authentication Flow
-
-```
-Register / Login → JWT token (stored in localStorage)
-        ↓
-Every API call sends: Authorization: Bearer <token>
-        ↓
-@jwt_required validates token on /detect-phase and /generate
-        ↓
-Token expires after 12h → user redirected to login
-```
-
-User accounts are stored persistently in **Supabase PostgreSQL**.
+Open `http://127.0.0.1:5000` — the first account you create will be the Owner.
 
 ---
 
 ## API Endpoints
 
-### `POST /auth/register`
-Register a new account. Returns a JWT token.
+### Auth
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/auth/register` | None | Register — first user becomes Owner |
+| POST | `/auth/login` | None | Login, returns JWT + role |
+| GET | `/auth/owner-exists` | None | Check if an owner account exists |
 
-```json
-{ "username": "john", "email": "john@co.com", "password": "secret123" }
-```
+### Incident Operations
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/detect-phase` | Owner, Manager | Classify timeline entry |
+| POST | `/generate` | Owner, Manager | Generate customer message + log entry |
+| POST | `/incidents/save` | Owner, Manager | Save completed incident to history |
+| GET | `/incidents` | All roles | Get last 5 shared incidents |
+| DELETE | `/incidents/<id>` | Owner only | Delete an incident from history |
 
-### `POST /auth/login`
-Login with existing credentials. Returns a JWT token.
-
-```json
-{ "username": "john", "password": "secret123" }
-```
-
-### `POST /detect-phase` 🔒
-Classifies a timeline entry. Requires `Authorization: Bearer <token>`.
-
-```json
-{ "timeline": "09:30 — Root cause traced to payment gateway" }
-→ { "phase": "progress" }
-```
-
-### `POST /generate` 🔒
-Generates customer message and internal log entry.
-
-```json
-{ "timeline": "...", "severity": "High", "tone": "Empathetic", "phase": "progress" }
-→ { "phase": "progress", "text": "...", "summary_entry": "..." }
-```
+### Admin
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/admin/users` | Owner only | List all users with roles |
+| PATCH | `/admin/users/<id>/role` | Owner only | Change a user's role |
 
 ---
 
-## AI Prompt Design
+## Deployment — Environment Variables
 
-Two-stage LLM pipeline:
+Set these in Vercel → Settings → Environment Variables (and Render → Environment):
 
-**Stage 1 — Phase Detection**
-- Single-word output (`initial` / `progress` / `resolved`)
-- Temperature `0` for deterministic classification
-
-**Stage 2 — Communication Generation**
-- Structured output with strict section labels (`CUSTOMER_MESSAGE:` / `SUMMARY_ENTRY:`)
-- Injects severity and tone as prompt variables
-- Explicitly bans technical jargon in customer messages
-
-Full prompt documentation in [`docs/AI_USAGE.md`](docs/AI_USAGE.md).
-
----
-
-## Deployment
-
-### Vercel
-Set these environment variables in Vercel → Settings → Environment Variables:
-```
-GROQ_API_KEY
-JWT_SECRET
-DATABASE_URL   ← Supabase pooler URL (port 6543)
-```
-
-### Render
-Set the same variables in Render → Environment.
+| Variable | Description |
+|---|---|
+| `GROQ_API_KEY` | Groq API key for AI inference |
+| `JWT_SECRET` | Secret for signing JWT tokens |
+| `DATABASE_URL` | Supabase PostgreSQL pooler URL (port 6543) |
 
 ---
 
 ## Future Enhancements
 
 - PDF / email export
-- Multi-language support
+- Multi-language customer message support
 - Incident analytics dashboard
-- Webhook integration for PagerDuty / Slack
-- Admin role and team management
+- Webhook integration (PagerDuty, Slack, Microsoft Teams)
+- Incident template library per service type
 
 ---
 
