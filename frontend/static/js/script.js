@@ -144,8 +144,15 @@ async function loadUsers() {
   const list = document.getElementById('amUserList');
   list.innerHTML = '<p class="placeholder-text" style="padding:var(--space-4)">Loading users…</p>';
   try {
-    const res  = await fetch('/admin/users', { headers: authHeaders() });
+    const res = await fetch('/admin/users', { headers: authHeaders() });
     if (res.status === 403) { list.innerHTML = '<p class="placeholder-text" style="padding:var(--space-4)">Access denied.</p>'; return; }
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const text = await res.text();
+      list.innerHTML = `<p class="placeholder-text" style="padding:var(--space-4);color:var(--red)">Server error loading users.</p>`;
+      console.error('admin/users non-JSON response:', text.substring(0, 300));
+      return;
+    }
     const data = await res.json();
     renderUsers(data.users || []);
   } catch (e) {

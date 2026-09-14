@@ -143,6 +143,14 @@ def admin_list_users():
     return jsonify({"users": users}), 200
 
 
+@bp.route("/admin/users", methods=["GET"])
+@role_required("owner")
+def admin_list_users():
+    """Return all users with their roles."""
+    users = get_all_users()
+    return jsonify({"users": users}), 200
+
+
 @bp.route("/admin/users/<int:user_id>/role", methods=["PATCH"])
 @role_required("owner")
 def admin_update_role(user_id):
