@@ -16,8 +16,16 @@ async function loadHistory() {
   list.innerHTML = '<p class="placeholder-text" style="padding:var(--space-4)">Loading…</p>';
 
   try {
-    const res  = await fetch('/incidents', { headers: authHeaders() });
+    const res = await fetch('/incidents', { headers: authHeaders() });
     if (res.status === 401) { logout(); return; }
+
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const text = await res.text();
+      list.innerHTML = `<p class="placeholder-text" style="padding:var(--space-4);color:var(--red)">Server error — check logs.<br><small>${text.substring(0, 200)}</small></p>`;
+      return;
+    }
+
     const data = await res.json();
     if (data.error) {
       list.innerHTML = `<p class="placeholder-text" style="padding:var(--space-4);color:var(--red)">${data.error}</p>`;
