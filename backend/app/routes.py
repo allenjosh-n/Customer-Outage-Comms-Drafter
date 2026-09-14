@@ -129,7 +129,13 @@ def get_incidents_route():
 
 # ── Admin routes (owner only) ──────────────────────────────────────────────────
 
-@bp.route("/admin/users", methods=["GET"])
+@bp.route("/incidents/<int:incident_id>", methods=["DELETE"])
+@role_required("owner")
+def delete_incident_route(incident_id):
+    """Owner can delete any incident from history."""
+    from .models import delete_incident
+    ok = delete_incident(incident_id)
+    return jsonify({"deleted": ok}), 200 if ok else 500
 @role_required("owner")
 def admin_list_users():
     """Return all users with their roles."""

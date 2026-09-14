@@ -44,12 +44,10 @@ function renderHistory(incidents) {
 
   const phaseColors = { initial: 'var(--red)', progress: 'var(--amber)', resolved: 'var(--green)' };
   const phaseLabels = { initial: 'Initial Alert', progress: 'In Progress', resolved: 'Resolved' };
-  const sevColors   = { Low: 'var(--green)', Medium: 'var(--amber)', High: 'var(--red)' };
+  const role        = localStorage.getItem('oc_role') || 'viewer';
 
-  list.innerHTML = incidents.map(inc => {
-    const date    = new Date(inc.created).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
-    const sev     = inc.severity || 'Low';
-    const sevCol  = sevColors[sev] || 'var(--text-muted)';
+  list.innerHTML = incidents.map((inc, idx) => {
+    const date = new Date(inc.created).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 
     const entriesHtml = (inc.entries || []).map(e => `
       <div class="history-entry history-entry--${e.phase}">
@@ -61,21 +59,59 @@ function renderHistory(incidents) {
       </div>
     `).join('');
 
+    const deleteBtn = role === 'owner'
+      ? `<button class="history-delete-btn" onclick="deleteIncident(${inc.id})" title="Delete incident">
+           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+             <polyline points="3 6 5 6 21 6"/>
+             <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+             <path d="M10 11v6M14 11v6"/>
+             <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+           </svg>
+         </button>`
+      : '';
+
     return `
-      <div class="history-card">
+      <div class="history-card" id="history-card-${inc.id}">
         <div class="history-card-header">
           <div class="history-meta">
             <span class="card-badge" style="background:rgba(0,201,167,0.1);border-color:rgba(0,201,167,0.25);color:var(--teal)">
-              Incident #${inc.id}
+              Incident #${incidents.length - idx}
             </span>
             <span class="history-drafted-by">by ${escapeHtml(inc.drafted_by || 'unknown')}</span>
           </div>
-          <span class="history-date">${date}</span>
+          <div style="display:flex;align-items:center;gap:var(--space-2)">
+            <span class="history-date">${date}</span>
+            ${deleteBtn}
+          </div>
         </div>
         <div class="history-entries">${entriesHtml}</div>
       </div>
     `;
   }).join('');
+}
+
+// ─── Delete incident (owner only) ─────────────────────────────────────────────
+async function deleteIncident(incidentId) {
+  if (!confirm('Delete this incident from history? This cannot be undone.')) return;
+  try {
+    const res = await fetch(`/incidents/${incidentId}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    if (res.status === 403) { showToast('Only the owner can delete incidents'); return; }
+    if (!res.ok) { showToast('Failed to delete incident'); return; }
+    // Remove card from DOM instantly
+    const card = document.getElementById(`history-card-${incidentId}`);
+    if (card) card.remove();
+    showToast('Incident deleted');
+    // If list is now empty show placeholder
+    const list = document.getElementById('historyList');
+    if (list && !list.querySelector('.history-card')) {
+      list.innerHTML = '<div class="history-empty">No past incidents yet.<br>Complete an incident and start a new one to save it here.</div>';
+    }
+  } catch (e) {
+    showToast('Error deleting incident');
+  }
 }
 
 // ─── Save incident to history ─────────────────────────────────────────────────

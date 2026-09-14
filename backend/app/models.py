@@ -283,8 +283,23 @@ def save_incident(drafted_by: str, severity: str, entries: list) -> bool:
         return False
 
 
-def get_recent_incidents(limit: int = 5) -> list:
-    import json
+def delete_incident(incident_id: int) -> bool:
+    try:
+        if _USE_PG:
+            conn = _pg_conn()
+            conn.run("DELETE FROM incidents WHERE id = :id", id=incident_id)
+            conn.close()
+        else:
+            with _sqlite_conn() as conn:
+                conn.execute("DELETE FROM incidents WHERE id = ?", (incident_id,))
+                conn.commit()
+        return True
+    except Exception as e:
+        print(f"[delete_incident] ERROR: {e}")
+        return False
+
+
+def get_recent_incidents(limit: int = 5) -> list:    import json
     try:
         rows = _pg_get_incidents(limit) if _USE_PG else _sqlite_get_incidents(limit)
         return [

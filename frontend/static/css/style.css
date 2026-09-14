@@ -436,3 +436,26 @@ body {
   text-align: center; padding: var(--space-10) var(--space-4);
   color: var(--text-muted); font-size: var(--text-sm); font-style: italic;
 }
+
+/* ===========================
+   HISTORY DELETE BUTTON
+   =========================== */
+.history-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.history-delete-btn:hover {
+  background: var(--red-dim);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--red);
+}
