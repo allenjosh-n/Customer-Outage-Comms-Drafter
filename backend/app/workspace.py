@@ -43,13 +43,11 @@ def _is_member(workspace_id: int, user_id: int) -> bool:
 # ── HTML pages ────────────────────────────────────────────────────────────────
 
 @workspace_bp.route("/workspace-page")
-@jwt_required
 def workspace_list_page():
     return render_template("workspace_list.html")
 
 
 @workspace_bp.route("/workspace-page/<int:workspace_id>")
-@jwt_required
 def workspace_detail_page(workspace_id):
     return render_template("workspace_detail.html", workspace_id=workspace_id)
 
