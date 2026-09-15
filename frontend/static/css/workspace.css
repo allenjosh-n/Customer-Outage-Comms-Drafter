@@ -124,7 +124,9 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   padding: var(--space-8);
-  width: min(520px, 92vw);
+  width: min(520px, 90vw);
+  box-sizing: border-box;
+  overflow: hidden;
   z-index: 201;
   box-shadow: var(--shadow-pop);
   opacity: 0; pointer-events: none;
@@ -146,6 +148,15 @@
   gap: var(--space-3);
   margin-top: var(--space-5);
   align-items: stretch;
+  width: 100%;
+}
+.modal-actions .reset-btn,
+.modal-actions .generate-btn {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ===========================
