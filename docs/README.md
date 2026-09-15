@@ -1,45 +1,56 @@
 # Customer Outage Comms Drafter
 
-An AI-powered incident communication tool with role-based access control, shared incident history, and a team Access Manager.
+An AI-powered, role-based collaborative incident communication platform.
+
+---
+
+## Two Modes
+
+| Mode | URL | Who |
+|---|---|---|
+| Incident Drafter | `/` | Quick single-user drafting |
+| Collaborative Workspace | `/workspace-page` | Multi-user shared incident |
 
 ---
 
 ## Project Structure
 
 ```
-Customer-Outage-Comms-Drafter/
-│
-├── api/
-│   └── index.py                ← Vercel serverless entry point
-│
-├── backend/
-│   ├── app/
-│   │   ├── __init__.py         ← App factory
-│   │   ├── routes.py           ← API endpoints
-│   │   ├── auth.py             ← /auth/register, /auth/login
-│   │   ├── auth_middleware.py  ← @jwt_required, @role_required
-│   │   ├── models.py           ← User + incident model (Supabase + SQLite)
-│   │   └── prompts.py          ← AI prompt templates
-│   ├── config.py               ← Environment loader
-│   ├── requirements.txt
-│   └── run.py                  ← Local entry point
+├── backend/app/
+│   ├── routes.py           ← Incident Drafter API
+│   ├── workspace.py        ← Collaborative Workspace API
+│   ├── auth.py             ← Register / Login
+│   ├── auth_middleware.py  ← @jwt_required, @role_required
+│   ├── models.py           ← All DB models
+│   └── prompts.py          ← AI prompt templates
 │
 ├── frontend/
-│   ├── static/
-│   │   ├── css/style.css
-│   │   ├── css/auth.css        ← Auth + Access Manager styles
-│   │   └── js/script.js
+│   ├── static/css/
+│   │   ├── style.css       ← Main styles
+│   │   ├── auth.css        ← Auth + Access Manager
+│   │   └── workspace.css   ← Workspace + nav
+│   ├── static/js/
+│   │   ├── script.js       ← Drafter logic
+│   │   └── workspace.js    ← Workspace logic
 │   └── templates/
 │       ├── index.html
+│       ├── workspace_list.html
+│       ├── workspace_detail.html
 │       ├── login.html
 │       └── register.html
-│
-├── docs/
-│   ├── README.md               ← This file
-│   └── AI_USAGE.md
-│
-└── .env.example
 ```
+
+---
+
+## Roles
+
+| Role | Drafter | Workspace | History | Delete | Access Manager |
+|---|---|---|---|---|---|
+| Owner | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Incident Manager | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Viewer | ❌ | ❌ | ✅ | ❌ | ❌ |
+
+First user to register = Owner. All others default to Viewer.
 
 ---
 
@@ -54,18 +65,6 @@ cp .env.example .env   # fill in GROQ_API_KEY, JWT_SECRET, DATABASE_URL
 python backend/run.py
 ```
 
-Open `http://127.0.0.1:5000` — first account becomes the Owner.
-
----
-
-## Roles
-
-| Role | Generate | History | Delete | Access Manager |
-|---|---|---|---|---|
-| Owner | ✅ | ✅ | ✅ | ✅ |
-| Incident Manager | ✅ | ✅ | ❌ | ❌ |
-| Viewer | ❌ | ✅ | ❌ | ❌ |
-
 ---
 
 ## Tech Stack
@@ -75,8 +74,8 @@ Open `http://127.0.0.1:5000` — first account becomes the Owner.
 | Frontend | HTML, CSS, JavaScript |
 | Backend | Python, Flask |
 | AI | Groq API — Llama 3.3 70B |
-| Auth | JWT (PyJWT) + werkzeug |
-| Authorization | Role-based `@role_required` decorator |
+| Auth | JWT + werkzeug |
+| Authorization | Role-based `@role_required` |
 | Database | Supabase PostgreSQL (pg8000) |
 
 ---
@@ -91,6 +90,4 @@ Open `http://127.0.0.1:5000` — first account becomes the Owner.
 
 ---
 
-## AI Usage
-
-See [AI_USAGE.md](AI_USAGE.md) for prompt design documentation.
+See [AI_USAGE.md](AI_USAGE.md) for prompt documentation.

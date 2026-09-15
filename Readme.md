@@ -1,6 +1,6 @@
 # Customer Outage Comms Drafter
 
-> An AI-powered incident communication tool that converts raw technical timelines into professional, customer-safe messages — with role-based access control, shared incident history, and a team management panel.
+> An AI-powered, role-based collaborative incident communication platform where multiple incident managers can work together on the same incident, generate customer-safe communications, and maintain a shared incident history.
 
 ## Live Deployments
 
@@ -15,20 +15,36 @@
 
 During service outages, technical teams have detailed timelines but no fast, consistent way to turn them into clear customer communications. Writing updates manually under pressure leads to delays, inconsistent tone, and messages that leak technical jargon to customers.
 
-This tool solves that by automating the full communication pipeline — from phase detection to customer message generation — so teams can focus on resolving the incident, not writing about it.
+This platform solves that by combining AI-powered communication drafting with real-time team collaboration — so every team member sees the same incident, contributes to the same timeline, and produces consistent, jargon-free customer updates.
+
+---
+
+## Two Ways to Work
+
+### 1. Incident Drafter (`/`)
+Quick single-user mode. Enter a timeline update, the AI detects the phase and drafts a customer message. Best for solo responders who need to move fast.
+
+### 2. Collaborative Workspace (`/workspace-page`)
+Multi-user shared incident workspace. Create an incident, add collaborators, and every Incident Manager on the team can add timeline updates and generate communications on the same shared incident. Full activity history with "drafted by" attribution.
 
 ---
 
 ## How It Works
 
-1. Register or log in — the first user automatically becomes the **Owner**
-2. Owner promotes team members to **Incident Manager** via the Access Manager
-3. Incident Manager enters a timeline update and clicks **Draft Update**
-4. The AI classifies the entry as `initial`, `progress`, or `resolved`
-5. The matching communication card is populated with a customer-facing message
-6. Each update appends a bullet-point entry to the internal Incident Summary Log
-7. Click **Start New Incident** to save the incident to shared history and reset
-8. All roles can view the **History** tab — Viewers see only this tab
+**Incident Drafter:**
+1. Log in — first user becomes the Owner
+2. Enter a single timeline update
+3. AI auto-detects phase (Initial / In Progress / Resolved)
+4. Matching communication card is populated
+5. Click **Start New Incident** to save to shared history
+
+**Collaborative Workspace:**
+1. Owner or Incident Manager creates an incident workspace with a title and severity
+2. Creator is automatically added as the first collaborator
+3. Other team members can be added as collaborators
+4. Each member can add timeline entries → AI generates customer message + internal summary
+5. Full timeline visible to all members in real time
+6. Owner or member can close the incident when resolved
 
 ---
 
@@ -37,33 +53,33 @@ This tool solves that by automating the full communication pipeline — from pha
 | Feature | Description |
 |---|---|
 | JWT Authentication | Secure register/login with 12h token expiry |
-| Role-Based Access Control | Owner, Incident Manager, Viewer roles with enforced permissions |
+| Role-Based Access Control | Owner, Incident Manager, Viewer with enforced permissions |
 | Access Manager | Owner-only panel to grant/revoke team member roles |
-| Auto Phase Detection | Classifies each timeline entry into `initial`, `in-progress`, or `resolved` |
-| Customer Message Generation | Produces jargon-free, tone-adjusted customer updates |
-| Severity Levels | Low, Medium, and High severity with visual indicator |
-| Tone Selection | Calm, Empathetic, or Concise communication styles |
-| Shared Incident History | Last 5 incidents visible to all roles, with `drafted by` attribution |
+| Collaborative Workspace | Shared incident with multiple collaborators — real-time timeline |
+| Auto Phase Detection | Classifies timeline entries into initial / in-progress / resolved |
+| Customer Message Generation | Jargon-free, tone-adjusted customer updates |
+| Drafted By Attribution | History and workspace updates show which member drafted each entry |
+| Shared Incident History | Last 5 incidents visible to all roles with full details |
 | Delete Incident | Owner can delete any incident from shared history |
+| Severity & Tone | Low/Medium/High severity, Calm/Empathetic/Concise tone |
 | Internal Incident Log | Structured bullet-point summary for the incident team |
-| Report Export | Download the full incident log as a `.txt` file |
-| Copy to Clipboard | One-click copy for any generated communication |
-| Persistent User Accounts | Users and incidents stored in Supabase PostgreSQL |
-| Responsive UI | Clean single-page interface built for operational teams |
+| Report Export | Download the full incident log as `.txt` |
+| Viewer-Only Mode | Viewers see history only — input panel hidden, full-width layout |
+| Persistent Data | All users, incidents, and workspaces stored in Supabase PostgreSQL |
 
 ---
 
 ## Roles & Permissions
 
-| Role | Generate Updates | View History | Delete Incidents | Access Manager |
-|---|---|---|---|---|
-| **Owner** | ✅ | ✅ | ✅ | ✅ |
-| **Incident Manager** | ✅ | ✅ | ❌ | ❌ |
-| **Viewer** | ❌ | ✅ | ❌ | ❌ |
+| Role | Incident Drafter | Workspace | History | Delete | Access Manager |
+|---|---|---|---|---|---|
+| **Owner** | ✅ | ✅ Create + Collaborate | ✅ | ✅ | ✅ |
+| **Incident Manager** | ✅ | ✅ Create + Collaborate | ✅ | ❌ | ❌ |
+| **Viewer** | ❌ | ❌ | ✅ Read-only | ❌ | ❌ |
 
-- The **first user to register** becomes the Owner — there can only be one
+- The **first user to register** becomes the Owner — only one ever
 - All other users default to **Viewer** until the Owner promotes them
-- The Owner opens **Access Manager** (top header) to change roles
+- Owner uses **Access Manager** (header button) to assign roles
 
 ---
 
@@ -76,8 +92,9 @@ This tool solves that by automating the full communication pipeline — from pha
 | AI Inference | Groq API — Llama 3.3 70B Versatile |
 | Authentication | JWT (PyJWT) + werkzeug password hashing |
 | Authorization | Role-based `@role_required` decorator |
-| Database | Supabase PostgreSQL (via pg8000) |
+| Database | Supabase PostgreSQL (via pg8000, pure Python) |
 | Config | python-dotenv — `.env` based configuration |
+| Deployment | Vercel (serverless), Render (web service) |
 
 ---
 
@@ -92,74 +109,55 @@ Customer-Outage-Comms-Drafter/
 ├── backend/
 │   ├── app/
 │   │   ├── __init__.py         ← App factory
-│   │   ├── routes.py           ← API endpoints
-│   │   ├── auth.py             ← Auth routes (/auth/register, /auth/login)
+│   │   ├── routes.py           ← Incident Drafter API endpoints
+│   │   ├── workspace.py        ← Collaborative Workspace blueprint
+│   │   ├── auth.py             ← /auth/register, /auth/login
 │   │   ├── auth_middleware.py  ← @jwt_required, @role_required decorators
-│   │   ├── models.py           ← User + incident model (Supabase + SQLite fallback)
+│   │   ├── models.py           ← All DB models (users, incidents, workspaces)
 │   │   └── prompts.py          ← AI prompt templates
-│   ├── config.py               ← Environment variable loader
-│   ├── requirements.txt        ← Python dependencies
-│   └── run.py                  ← Local entry point
+│   ├── config.py
+│   ├── requirements.txt
+│   └── run.py
 │
 ├── frontend/
 │   ├── static/
-│   │   ├── css/style.css       ← App styles
+│   │   ├── css/style.css       ← Main app styles
 │   │   ├── css/auth.css        ← Auth + Access Manager styles
-│   │   └── js/script.js        ← Client-side logic, role-aware UI
+│   │   ├── css/workspace.css   ← Workspace page styles + nav
+│   │   └── js/
+│   │       ├── script.js       ← Incident Drafter logic
+│   │       └── workspace.js    ← Workspace list + detail logic
 │   └── templates/
-│       ├── index.html          ← Main app
-│       ├── login.html          ← Login page
-│       └── register.html       ← Register page
+│       ├── index.html          ← Incident Drafter
+│       ├── workspace_list.html ← Workspace list page
+│       ├── workspace_detail.html ← Workspace detail page
+│       ├── login.html
+│       └── register.html
 │
 ├── docs/
-│   ├── README.md
-│   └── AI_USAGE.md
-│
-├── tests/
-│   └── test_groq.py
-│
 ├── .env.example
 ├── render.yaml
-├── vercel.json
-└── requirements.txt
+└── vercel.json
 ```
 
 ---
 
 ## Setup
 
-### 1. Clone the repository
+### 1. Clone and install
 
 ```bash
 git clone https://github.com/allenjosh-n/Customer-Outage-Comms-Drafter.git
 cd Customer-Outage-Comms-Drafter
-```
-
-### 2. Create and activate a virtual environment
-
-```bash
-python -m venv venv
-
-# Windows
-venv\Scripts\activate
-
-# Mac / Linux
-source venv/bin/activate
-```
-
-### 3. Install dependencies
-
-```bash
+python -m venv venv && venv\Scripts\activate
 pip install -r backend/requirements.txt
 ```
 
-### 4. Configure environment variables
+### 2. Configure environment
 
 ```bash
 cp .env.example .env
 ```
-
-Edit `.env`:
 
 ```env
 GROQ_API_KEY=gsk_your_key_here
@@ -167,9 +165,9 @@ JWT_SECRET=your-long-random-secret
 DATABASE_URL=postgresql://postgres.xxxx:password@aws-0-region.pooler.supabase.com:6543/postgres
 ```
 
-### 5. Set up Supabase (first time only)
+### 3. Set up Supabase (first time)
 
-Run this in your Supabase SQL Editor:
+Run in Supabase SQL Editor:
 
 ```sql
 CREATE TABLE IF NOT EXISTS users (
@@ -180,7 +178,6 @@ CREATE TABLE IF NOT EXISTS users (
     role     TEXT NOT NULL DEFAULT 'viewer',
     created  TIMESTAMPTZ DEFAULT NOW()
 );
-
 CREATE TABLE IF NOT EXISTS incidents (
     id         SERIAL PRIMARY KEY,
     drafted_by TEXT NOT NULL DEFAULT '',
@@ -188,63 +185,99 @@ CREATE TABLE IF NOT EXISTS incidents (
     entries    TEXT NOT NULL,
     created    TIMESTAMPTZ DEFAULT NOW()
 );
+CREATE TABLE IF NOT EXISTS workspaces (
+    id         SERIAL PRIMARY KEY,
+    title      TEXT NOT NULL,
+    severity   TEXT NOT NULL DEFAULT 'Medium',
+    status     TEXT NOT NULL DEFAULT 'active',
+    created_by TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS workspace_members (
+    id           SERIAL PRIMARY KEY,
+    workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    username     TEXT NOT NULL,
+    joined_at    TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(workspace_id, user_id)
+);
+CREATE TABLE IF NOT EXISTS workspace_updates (
+    id               SERIAL PRIMARY KEY,
+    workspace_id     INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    created_by       TEXT NOT NULL,
+    timeline         TEXT NOT NULL,
+    phase            TEXT NOT NULL DEFAULT 'initial',
+    customer_message TEXT NOT NULL DEFAULT '',
+    summary_entry    TEXT NOT NULL DEFAULT '',
+    created_at       TIMESTAMPTZ DEFAULT NOW()
+);
 ```
 
-### 6. Run the app
+### 4. Run locally
 
 ```bash
 python backend/run.py
 ```
 
-Open `http://127.0.0.1:5000` — the first account you create will be the Owner.
+Open `http://127.0.0.1:5000` — first account you create will be the Owner.
 
 ---
 
-## API Endpoints
+## API Reference
 
 ### Auth
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
 | POST | `/auth/register` | None | Register — first user becomes Owner |
 | POST | `/auth/login` | None | Login, returns JWT + role |
-| GET | `/auth/owner-exists` | None | Check if an owner account exists |
 
-### Incident Operations
+### Incident Drafter
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
 | POST | `/detect-phase` | Owner, Manager | Classify timeline entry |
-| POST | `/generate` | Owner, Manager | Generate customer message + log entry |
-| POST | `/incidents/save` | Owner, Manager | Save completed incident to history |
-| GET | `/incidents` | All roles | Get last 5 shared incidents |
-| DELETE | `/incidents/<id>` | Owner only | Delete an incident from history |
+| POST | `/generate` | Owner, Manager | Generate customer message |
+| POST | `/incidents/save` | Owner, Manager | Save to shared history |
+| GET | `/incidents` | All roles | Last 5 incidents |
+| DELETE | `/incidents/<id>` | Owner only | Delete incident |
+
+### Collaborative Workspace
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/workspace` | Owner, Manager | Create workspace |
+| GET | `/workspace` | Owner, Manager | List all workspaces |
+| GET | `/workspace/<id>` | Owner, Manager | Get workspace + members + updates |
+| POST | `/workspace/<id>/updates` | Member, Owner | Add update + AI generate |
+| POST | `/workspace/<id>/members` | Member, Owner | Add collaborator |
+| DELETE | `/workspace/<id>/members/<uid>` | Owner | Remove collaborator |
+| PATCH | `/workspace/<id>/status` | Member, Owner | Close workspace |
 
 ### Admin
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| GET | `/admin/users` | Owner only | List all users with roles |
-| PATCH | `/admin/users/<id>/role` | Owner only | Change a user's role |
+| GET | `/admin/users` | Owner | List all users + roles |
+| PATCH | `/admin/users/<id>/role` | Owner | Change user role |
 
 ---
 
-## Deployment — Environment Variables
+## Deployment
 
-Set these in Vercel → Settings → Environment Variables (and Render → Environment):
+Set these in Vercel → Settings → Environment Variables:
 
-| Variable | Description |
-|---|---|
-| `GROQ_API_KEY` | Groq API key for AI inference |
-| `JWT_SECRET` | Secret for signing JWT tokens |
-| `DATABASE_URL` | Supabase PostgreSQL pooler URL (port 6543) |
+```
+GROQ_API_KEY
+JWT_SECRET
+DATABASE_URL   ← Supabase pooler URL (port 6543)
+```
 
 ---
 
 ## Future Enhancements
 
+- Real-time updates via WebSockets (multiple people see new entries instantly)
 - PDF / email export
-- Multi-language customer message support
 - Incident analytics dashboard
 - Webhook integration (PagerDuty, Slack, Microsoft Teams)
-- Incident template library per service type
+- Incident template library
 
 ---
 
@@ -254,7 +287,7 @@ Set these in Vercel → Settings → Environment Variables (and Render → Envir
 |---|---|
 | Groq API + Llama 3.3 70B | Runtime AI inference engine |
 | ChatGPT (OpenAI) | Prompt engineering and design |
-| Kiro (Amazon) | Code assistance, debugging, deployment fixes |
+| Kiro (Amazon) | Code assistance, debugging, deployment |
 | GitHub Copilot | Inline code suggestions |
 
 ---
