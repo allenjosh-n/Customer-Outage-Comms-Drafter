@@ -214,22 +214,17 @@ def update_status_route(workspace_id):
     else:
         # Reopen
         try:
-            if _USE_PG():
-                conn = _pg_conn_ext()
+            from .models import _pg_conn, _sqlite_conn, DATABASE_URL
+            if DATABASE_URL:
+                conn = _pg_conn()
                 conn.run("UPDATE workspaces SET status = 'active' WHERE id = :id", id=workspace_id)
                 conn.close()
+            else:
+                with _sqlite_conn() as conn:
+                    conn.execute("UPDATE workspaces SET status = 'active' WHERE id = ?", (workspace_id,))
+                    conn.commit()
             ok = True
         except Exception:
             ok = False
 
     return jsonify({"updated": ok}), 200
-
-
-def _pg_conn_ext():
-    """Local conn helper for status reopen."""
-    from .models import _pg_conn
-    return _pg_conn()
-
-
-def _USE_PG():
-    return bool(os.environ.get("DATABASE_URL", ""))
