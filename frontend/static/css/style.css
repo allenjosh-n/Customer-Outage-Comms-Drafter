@@ -459,3 +459,12 @@ body {
   border-color: rgba(239, 68, 68, 0.3);
   color: var(--red);
 }
+
+/* ===========================
+   VIEWER HEADER
+   =========================== */
+.viewer-header {
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--border);
+}

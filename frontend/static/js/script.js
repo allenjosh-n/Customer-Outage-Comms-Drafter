@@ -254,12 +254,37 @@ function initUserInfo() {
     if (amBtn) amBtn.style.display = 'flex';
   }
 
-  // Viewer — hide input panel, auto-switch to history tab
+  // Viewer — hide input panel, full width layout, auto-switch to history tab
   if (role === 'viewer') {
-    const inputPanel = document.querySelector('.input-panel');
-    if (inputPanel) inputPanel.style.display = 'none';
-    // Switch to history tab automatically
-    setTimeout(() => switchTab('history'), 100);
+    const inputPanel  = document.querySelector('.input-panel');
+    const mainLayout  = document.querySelector('.main-layout');
+    const panelHeader = document.querySelector('.output-panel .panel-header');
+    const tabBar      = document.querySelector('.tab-bar');
+
+    if (inputPanel)  inputPanel.style.display  = 'none';
+    if (mainLayout)  mainLayout.style.gridTemplateColumns = '1fr';
+    if (panelHeader) panelHeader.style.display = 'none';
+    if (tabBar)      tabBar.style.display      = 'none';
+
+    // Inject a clean viewer header
+    const outputPanel = document.querySelector('.output-panel');
+    if (outputPanel) {
+      const viewerHeader = document.createElement('div');
+      viewerHeader.className = 'viewer-header';
+      viewerHeader.innerHTML = `
+        <span class="panel-eyebrow">Read Only</span>
+        <h2 class="panel-title">Incident History</h2>
+        <p class="panel-desc">Shared incident log — view the last 5 completed incidents drafted by your team.</p>
+      `;
+      outputPanel.insertBefore(viewerHeader, outputPanel.firstChild);
+    }
+
+    // Show history view directly
+    const viewDrafts  = document.getElementById('view-drafts');
+    const viewHistory = document.getElementById('view-history');
+    if (viewDrafts)  viewDrafts.style.display  = 'none';
+    if (viewHistory) viewHistory.style.display = 'block';
+    loadHistory();
   }
 }
 
