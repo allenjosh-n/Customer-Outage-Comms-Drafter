@@ -22,7 +22,9 @@ def create_app():
     # Register blueprints
     from .routes import bp
     from .auth import auth_bp
+    from .workspace import workspace_bp
     flask_app.register_blueprint(bp)
     flask_app.register_blueprint(auth_bp)
+    flask_app.register_blueprint(workspace_bp)
 
     return flask_app

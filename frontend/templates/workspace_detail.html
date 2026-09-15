@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OutageComms — Incident Workspace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/workspace.css') }}">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-pulse pulse--low" id="wsSeverityPulse"></div>
+        <div class="brand-divider"></div>
+        <span class="brand-name">OutageComms</span>
+      </div>
+      <nav class="header-nav">
+        <a href="/" class="nav-link">Incident Drafter</a>
+        <a href="/workspace-page" class="nav-link nav-link--active">Workspace</a>
+      </nav>
+      <div class="header-right">
+        <div class="user-info" id="userInfo">
+          <div class="user-avatar" id="userAvatar"></div>
+          <span class="user-name" id="userName"></span>
+          <button class="logout-btn" onclick="logout()">Sign out</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="ws-detail-main">
+
+    <!-- Back + title bar -->
+    <div class="ws-detail-topbar">
+      <a href="/workspace-page" class="ws-back-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        All Incidents
+      </a>
+      <div class="ws-detail-title-row" id="wsTitleRow">
+        <div class="ws-title-skeleton"></div>
+      </div>
+      <button class="ws-close-btn" id="wsCloseBtn" onclick="closeWorkspace()" style="display:none">
+        Close Incident
+      </button>
+    </div>
+
+    <div class="ws-detail-layout">
+
+      <!-- Left column: members + add update form -->
+      <aside class="ws-sidebar">
+
+        <!-- Members -->
+        <div class="ws-section-card">
+          <div class="ws-section-header">
+            <h3 class="ws-section-title">Collaborators</h3>
+            <button class="copy-btn" id="addMemberBtn" onclick="openAddMember()" style="display:none">+ Add</button>
+          </div>
+          <div id="membersList" class="ws-members-list"></div>
+
+          <!-- Add member dropdown -->
+          <div id="addMemberPanel" class="add-member-panel" style="display:none">
+            <select id="addMemberSelect" class="field-select" style="margin-bottom:var(--space-3)">
+              <option value="">Select a team member…</option>
+            </select>
+            <div style="display:flex;gap:var(--space-2)">
+              <button class="reset-btn" style="flex:1" onclick="closeAddMember()">Cancel</button>
+              <button class="generate-btn" style="flex:1;padding:0.5rem" onclick="addMember()">Add</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Generate Update form -->
+        <div class="ws-section-card" id="updateFormCard">
+          <h3 class="ws-section-title" style="margin-bottom:var(--space-4)">Add Update</h3>
+          <div class="field-group">
+            <label class="field-label" for="updateTimeline">
+              Timeline Entry
+              <span class="field-hint">e.g. 09:30 — Root cause identified</span>
+            </label>
+            <textarea id="updateTimeline" class="field-textarea" rows="4"
+              placeholder="09:30 — describe what's happening…"></textarea>
+          </div>
+          <div class="field-row">
+            <div class="field-group" style="margin-bottom:0">
+              <label class="field-label" for="updateSeverity">Severity</label>
+              <div class="select-wrapper">
+                <select id="updateSeverity" class="field-select">
+                  <option value="Low">Low</option>
+                  <option value="Medium" selected>Medium</option>
+                  <option value="High">High</option>
+                </select>
+                <span class="select-icon">&#8595;</span>
+              </div>
+            </div>
+            <div class="field-group" style="margin-bottom:0">
+              <label class="field-label" for="updateTone">Tone</label>
+              <div class="select-wrapper">
+                <select id="updateTone" class="field-select">
+                  <option value="Calm">Calm</option>
+                  <option value="Empathetic" selected>Empathetic</option>
+                  <option value="Concise">Concise</option>
+                </select>
+                <span class="select-icon">&#8595;</span>
+              </div>
+            </div>
+          </div>
+          <button class="generate-btn" style="margin-top:var(--space-4)" id="generateUpdateBtn" onclick="generateUpdate()">
+            <span class="btn-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </span>
+            <span class="btn-label">Generate Update</span>
+            <span class="btn-loader" id="genLoader"></span>
+          </button>
+        </div>
+
+      </aside>
+
+      <!-- Right column: update timeline -->
+      <section class="ws-updates-panel">
+        <div class="ws-section-header" style="margin-bottom:var(--space-5)">
+          <h3 class="ws-section-title">Incident Timeline</h3>
+          <span id="wsStatusBadge" class="ws-status-badge"></span>
+        </div>
+        <div id="updatesList" class="ws-updates-list">
+          <p class="placeholder-text" style="padding:var(--space-6);text-align:center">No updates yet. Add the first timeline entry.</p>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // Pass workspace_id from Flask template to JS
+    const WORKSPACE_ID = {{ workspace_id }};
+  </script>
+  <script src="{{ url_for('static', filename='js/workspace.js') }}"></script>
+</body>
+</html>
