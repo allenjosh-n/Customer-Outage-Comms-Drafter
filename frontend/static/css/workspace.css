@@ -124,7 +124,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   padding: var(--space-8);
-  width: min(440px, 90vw);
+  width: min(520px, 92vw);
   z-index: 201;
   box-shadow: var(--shadow-pop);
   opacity: 0; pointer-events: none;
@@ -145,6 +145,7 @@
   display: flex;
   gap: var(--space-3);
   margin-top: var(--space-5);
+  align-items: stretch;
 }
 
 /* ===========================

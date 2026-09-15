@@ -272,7 +272,7 @@ function renderUpdates(updates) {
           </button>
           <div id="msg-${uid}" class="ws-collapse-content">
             <p class="ws-customer-msg">${escHtml(u.customer_message)}</p>
-            <button class="copy-btn" style="margin-top:var(--space-2)" onclick="navigator.clipboard.writeText(${JSON.stringify(u.customer_message)}).then(()=>showToast('Copied'))">Copy</button>
+            <button class="copy-btn" style="margin-top:var(--space-2)" data-copy="${escHtml(u.customer_message).replace(/"/g,'&quot;')}" onclick="copyUpdateMsg(this)">Copy</button>
           </div>
         </div>` : ''}
         ${hasSumm ? `
@@ -293,6 +293,11 @@ function toggleCollapse(id) {
   const el = document.getElementById(id);
   if (!el) return;
   el.classList.toggle('open');
+}
+
+function copyUpdateMsg(btn) {
+  const text = btn.getAttribute('data-copy') || '';
+  navigator.clipboard.writeText(text).then(() => showToast('Copied'));
 }
 
 // ─── Add member ───────────────────────────────────────────────────────────────
